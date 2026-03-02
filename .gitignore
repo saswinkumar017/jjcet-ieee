@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# documentations
+docs/
+logs/
+
+# Next.js
+.next/
+out/
+build/
+
+# Production
+dist/
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+*.bat
+nul
+query
+firestore.rules
+
+# Google Service Account key (secrets — use env vars instead)
+*firebase-adminsdk*.json
+*.json.key
+jjcet-ieee-firebase-adminsdk-fbsvc-bb7e40fb82.json
+
+.env.example
+DEPLOYMENT_GUIDE.md
+PLAN.md
+RUNNER_GUIDE.md
+session-ses_355b.md
+session-ses_375f.md
+.sisyphus/
