@@ -153,6 +153,14 @@ export default function RegisterPage() {
             Click the link in the email to verify your account. After verification, you can login.
           </p>
           
+          {/* Important: Check spam folder */}
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-6">
+            <p className="text-sm text-amber-800 font-medium mb-1">📧 Important!</p>
+            <p className="text-sm text-amber-700">
+              If you don't see the email, check your <span className="font-semibold"> spam folder</span> or <span className="font-semibold">promotions tab</span>. Our emails sometimes land there.
+            </p>
+          </div>
+          
           <div className="space-y-3">
             <Link href="/login" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/40 hover:-translate-y-1">
               Go to Login
