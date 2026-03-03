@@ -38,31 +38,8 @@ function LoginForm() {
     }
   }, [resendCooldown]);
 
-  // Rate limiting state
-  const [loginAttempts, setLoginAttempts] = useState(0);
-  const [lockedOut, setLockedOut] = useState(false);
-  const [lockoutTime, setLockoutTime] = useState(0);
-
-  // Handle lockout countdown
-  useEffect(() => {
-    if (lockoutTime > 0) {
-      const timer = setTimeout(() => setLockoutTime(lockoutTime - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (lockedOut) {
-      setLockedOut(false);
-      setLoginAttempts(0);
-    }
-  }, [lockoutTime, lockedOut]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Rate limiting check
-    if (lockedOut) {
-      setError(`Too many attempts. Please wait ${lockoutTime} seconds.`);
-      return;
-    }
-    
     setError("");
     setIsUnverified(false);
     setResendSuccess(false);
@@ -71,13 +48,6 @@ function LoginForm() {
       await login(email, password);
       router.push("/dashboard");
     } catch (err: unknown) {
-      // Track failed attempts
-      const newAttempts = loginAttempts + 1;
-      setLoginAttempts(newAttempts);
-      if (newAttempts >= 5) {
-        setLockedOut(true);
-        setLockoutTime(60);
-      }
       const msg = err instanceof Error ? err.message : "Login failed";
       // Detect the unverified error from auth.ts
       if (msg.includes('verify your email')) {
@@ -231,9 +201,10 @@ function LoginForm() {
                 <p className="text-sm font-medium text-amber-800">
                   Your email address is not verified yet. Check your inbox for the confirmation link.
                 </p>
-                <p className="text-xs text-amber-700">
-                  💡 Tip: Check your <span className="font-semibold">spam</span> or <span className="font-semibold">promotions</span> folder if not found.
-                </p>
+                {resendSuccess && (
+                  <p className="text-sm text-green-700 flex items-center gap-1.5">
+                    <CheckCircle className="w-4 h-4" />
+                    Verification email sent! Check your inbox.
                   </p>
                 )}
                 <button
@@ -317,7 +288,6 @@ function LoginForm() {
               )}
             </motion.button>
             
-            {/* Forgot Password Link */}
             <div className="text-center mt-3">
               <Link href="/forgot-password" className="text-sm text-gray-500 hover:text-purple-600 transition-colors">
                 Forgot your password?
