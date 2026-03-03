@@ -128,7 +128,7 @@ export default function HomePage() {
             images={campusImages} 
             interval={5000}
             showDots={true}
-            showArrows={true}
+            showArrows={false}
           />
           {/* Solid Blue Overlay - dims the images */}
           <div className="absolute inset-0 bg-primary/85 z-10"></div>
