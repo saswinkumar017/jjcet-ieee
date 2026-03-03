@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   CalendarDays, Plus, Edit, Trash2, ArrowRight, Clock, MapPin, 
-  Calendar, ChevronLeft, ChevronRight, X, Upload, Sparkles, Users, Trophy, Mic, GraduationCap
+  Calendar, ChevronLeft, ChevronRight, X, Sparkles, Users, Trophy, Mic, GraduationCap
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -65,6 +65,7 @@ const initialFormData: EventFormData = {
 
 export default function EventsPage() {
   const { user } = useAuth();
+  console.log('Current user:', user);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
@@ -72,13 +73,42 @@ export default function EventsPage() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<EventFormData>(initialFormData);
   const [deleteItem, setDeleteItem] = useState<{id: string; name: string} | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-
+  
+  // Drive image selection
+  const [showDriveModal, setShowDriveModal] = useState(false);
+  const [driveImages, setDriveImages] = useState<any[]>([]);
+  const [loadingDriveImages, setLoadingDriveImages] = useState(false);
+  const [selectedDriveImage, setSelectedDriveImage] = useState<string | null>(null);
+  
+  // Fetch images from Drive
+  const openDrivePicker = async () => {
+    setShowDriveModal(true);
+    setLoadingDriveImages(true);
+    try {
+      const { getEventImages } = await import('@/lib/drive');
+      const images = await getEventImages();
+      setDriveImages(images);
+    } catch (error) {
+      console.error('Failed to load Drive images:', error);
+    } finally {
+      setLoadingDriveImages(false);
+    }
+  };
+  
+  // Select image from Drive
+  const handleDriveImageSelect = (image: any) => {
+    // Store the thumbnailLink (direct image URL) for display in Firestore
+    // The thumbnailLink is /api/drive?action=image&fileId=XXX which works as img src
+    const imageUrl = image.thumbnailLink || image.webViewLink || image.url;
+    setSelectedDriveImage(imageUrl);
+    setPreviewUrl(image.thumbnailLink || imageUrl);
+    setFormData({ ...formData, imageUrl });
+    setShowDriveModal(false);
+  };
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -97,13 +127,6 @@ export default function EventsPage() {
   const pastEvents = events.filter(event => new Date(event.date) < new Date());
   const displayEvents = activeTab === "upcoming" ? upcomingEvents : pastEvents;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,17 +158,16 @@ export default function EventsPage() {
       if (editingEvent) {
         await eventsService.update(editingEvent.id, eventData);
       } else {
-        if (selectedFile) {
-          await eventsService.createWithFile(eventData, selectedFile);
-        } else {
-          await eventsService.create(eventData);
-        }
+        await eventsService.create(eventData);
       }
+      console.log('Event created, fetching updated list');
       const updated = await eventsService.getAll();
+      console.log('Events fetched:', updated.length);
       setEvents(updated);
       closeModal();
     } catch (error: any) {
       console.error("Failed to save event:", error);
+      alert("Error: " + (error?.message || error?.toString() || "Unknown error"));
       setFormError(error?.message || "Failed to save event. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -170,9 +192,8 @@ export default function EventsPage() {
 
   const openCreate = () => {
     setEditingEvent(null);
-    setFormData(initialFormData);
-    setSelectedFile(null);
     setPreviewUrl("");
+    setShowModal(true);
     setShowModal(true);
   };
 
@@ -197,9 +218,7 @@ export default function EventsPage() {
       trainerName: event.trainerName || "",
       prerequisites: event.prerequisites || "",
       duration: event.duration?.toString() || "",
-      materials: event.materials || "",
     });
-    setSelectedFile(null);
     setPreviewUrl(event.imageUrl || "");
     setShowModal(true);
   };
@@ -208,11 +227,10 @@ export default function EventsPage() {
     setShowModal(false);
     setEditingEvent(null);
     setFormData(initialFormData);
-    setSelectedFile(null);
-    setPreviewUrl("");
   };
 
   return (
+
     <>
       <Header />
 
@@ -458,90 +476,118 @@ export default function EventsPage() {
             required
           />
 
-          {/* File Upload */}
+          {/* Image Selection */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               Cover Image (Optional)
             </label>
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={openDrivePicker}
+                className="w-full py-2 px-4 border-2 border-dashed border-blue-300 rounded-xl text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+              >
+                <svg className="w-5 h-5 mx-auto mb-1 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+                </svg>
+                <p className="text-xs text-blue-500">Choose from Google Drive</p>
+              </button>
+            </div>
+            <div className="mb-2">
+              <Input 
+                label="Or enter Image URL" 
+                placeholder="https://example.com/image.jpg"
+                value={formData.imageUrl}
+                onChange={(e) => {
+                  setFormData({ ...formData, imageUrl: e.target.value });
+                  setPreviewUrl(e.target.value);
+                }}
+              />
+            </div>
             <div 
-              className="border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary transition-colors"
-              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-border rounded-xl p-4 text-center"
             >
               {previewUrl ? (
                 <div className="relative">
                   <img src={previewUrl} alt="Preview" className="max-h-40 mx-auto rounded-lg" />
                   <button
-                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedFile(null);
                       setPreviewUrl("");
+                      setFormData({ ...formData, imageUrl: "" });
                     }}
-                    className="absolute top-2 right-2 p-1 bg-error text-white rounded-full"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <>
-                  <Upload className="w-8 h-8 text-muted mx-auto mb-2" />
-                  <p className="text-sm text-muted">Click to upload an image</p>
-                  <p className="text-xs text-muted mt-1">PNG, JPG, JPEG up to 5MB</p>
-                </>
+                <p className="text-sm text-muted">No image selected</p>
               )}
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
-            />
           </div>
 
           {/* Competition Specific Fields */}
           {formData.category === "competition" && (
-            <div className="space-y-4 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-              <h4 className="font-medium text-yellow-800 flex items-center gap-2">
-                <Trophy className="w-4 h-4" /> Competition Details
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  type="date"
-                  label="Registration Deadline"
-                  value={formData.registrationDeadline || ""}
-                  onChange={(e) => setFormData({ ...formData, registrationDeadline: e.target.value })}
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="number"
-                    label="Min Team Size"
-                    placeholder="2"
-                    value={formData.teamMinSize || ""}
-                    onChange={(e) => setFormData({ ...formData, teamMinSize: e.target.value })}
-                  />
-                  <Input
-                    type="number"
-                    label="Max Team Size"
-                    placeholder="5"
-                    value={formData.teamMaxSize || ""}
-                    onChange={(e) => setFormData({ ...formData, teamMaxSize: e.target.value })}
-                  />
+            <div className="space-y-4">
+              {/* Individual / Team Toggle */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Participation Type</label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({ 
+                        ...formData, 
+                        teamMinSize: "", 
+                        teamMaxSize: "" 
+                      });
+                    }}
+                    className={cn(
+                      "flex-1 py-3 px-4 rounded-xl border-2 transition-all duration-200 font-medium",
+                      (!formData.teamMinSize && !formData.teamMaxSize)
+                        ? "border-primary bg-primary/10 text-primary shadow-md"
+                        : "border-border hover:border-primary/50 text-muted-foreground"
+                    )}
+                  >
+                    <Users className={cn("w-5 h-5 mx-auto mb-1", (!formData.teamMinSize && !formData.teamMaxSize) ? "text-primary" : "text-muted")} />
+                    <span className="text-sm">Individual</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({ 
+                        ...formData, 
+                        teamMinSize: "2", 
+                        teamMaxSize: "4" 
+                      });
+                    }}
+                    className={cn(
+                      "flex-1 py-3 px-4 rounded-xl border-2 transition-all duration-200 font-medium",
+                      (formData.teamMinSize || formData.teamMaxSize)
+                        ? "border-primary bg-primary/10 text-primary shadow-md"
+                        : "border-border hover:border-primary/50 text-muted-foreground"
+                    )}
+                  >
+                    <Users className={cn("w-5 h-5 mx-auto mb-1", (formData.teamMinSize || formData.teamMaxSize) ? "text-primary" : "text-muted")} />
+                    <span className="text-sm">Team</span>
+                  </button>
                 </div>
               </div>
-              <Textarea
-                label="Prizes"
-                placeholder="Enter prize details (e.g., 1st Prize: ₹5000, 2nd Prize: ₹3000)"
-                value={formData.prizes || ""}
-                onChange={(e) => setFormData({ ...formData, prizes: e.target.value })}
-                rows={2}
-              />
-              <Input
-                label="Rules Link"
-                placeholder="https://example.com/rules"
-                value={formData.rulesLink || ""}
-                onChange={(e) => setFormData({ ...formData, rulesLink: e.target.value })}
-              />
+              
+              {/* Other Details */}
+              <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+                <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Other Details
+                </h4>
+                <Textarea
+                  label="Additional Information"
+                  placeholder="Any other details about the competition (format, rounds, judging criteria, etc.)"
+                  value={formData.materials || ""}
+                  onChange={(e) => setFormData({ ...formData, materials: e.target.value })}
+                  rows={3}
+                />
+              </div>
             </div>
           )}
 
@@ -629,13 +675,50 @@ export default function EventsPage() {
         message="This event will be permanently deleted. This action cannot be undone."
         itemName={deleteItem?.name}
       />
-
+      
+      {/* Drive Image Picker Modal */}
+      <Modal
+        isOpen={showDriveModal}
+        onClose={() => setShowDriveModal(false)}
+        title="Choose Image from Google Drive"
+        size="4xl"
+      >
+        {loadingDriveImages ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent"></div>
+          </div>
+        ) : driveImages.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 mb-4">No images found in Drive</p>
+            <p className="text-sm text-gray-400">Upload images to your Google Drive folder first</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-3 max-h-96 overflow-y-auto p-2">
+            {driveImages.map((image) => (
+              <div
+                key={image.id}
+                onClick={() => handleDriveImageSelect(image)}
+                className="aspect-square relative rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+              >
+                <img
+                  src={image.thumbnailLink || image.url}
+                  alt={image.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center">
+                  <span className="text-white opacity-0 hover:opacity-100 text-xs font-medium px-2 text-center">{image.name}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+      
       <SuccessToast
-        message="Deleted successfully"
+        message="Event saved successfully!"
         isVisible={showSuccess}
         onClose={() => setShowSuccess(false)}
       />
-
       <Footer />
     </>
   );

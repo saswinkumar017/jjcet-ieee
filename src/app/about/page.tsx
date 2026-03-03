@@ -23,11 +23,6 @@ const values = [
   { icon: BookOpen, title: "Learning", description: "Continuous knowledge sharing and skill development" },
 ];
 
-const achievements = [
-  { year: "2024", title: "Best Student Branch Award", description: "Recognized for outstanding contributions" },
-  { year: "2023", title: "Technical Excellence", description: "Won multiple inter-college technical events" },
-  { year: "2022", title: "Highest Membership", description: "Achieved highest membership growth in region" },
-];
 
 export default function AboutPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -231,36 +226,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Achievements Section */}
-      <section className="section-padding bg-whitebg-slate-800">
-        <div className="container-custom">
-          <FadeIn>
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <Badge variant="accent" className="mb-4">Milestones</Badge>
-              <h2 className="text-3xl md:text-4xl font-bold text-foregroundtext-white mb-4">
-                Our Achievements
-              </h2>
-            </div>
-          </FadeIn>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {achievements.map((achievement, index) => (
-              <FadeIn key={index} delay={index * 100}>
-                <PremiumCard className="p-6 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-accent/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                  <div className="relative">
-                    <span className="inline-block px-3 py-1 bg-accent/20 text-amber-700text-amber-400 rounded-full text-sm font-medium mb-4">
-                      {achievement.year}
-                    </span>
-                    <h3 className="text-lg font-bold text-foregroundtext-white mb-2">{achievement.title}</h3>
-                    <p className="text-mutedtext-slate-400 text-sm">{achievement.description}</p>
-                  </div>
-                </PremiumCard>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Team Preview */}
       <section className="section-padding bg-backgroundbg-slate-900">

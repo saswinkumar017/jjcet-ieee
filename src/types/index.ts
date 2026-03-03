@@ -90,3 +90,18 @@ export interface Notification {
   isRead: boolean;
   createdAt: Date;
 }
+
+export interface DriveImage {
+  id: string;
+  name: string;
+  thumbnailLink: string;
+  webContentLink: string;
+  webViewLink: string;
+  description?: string;
+}
+
+export interface DriveFolder {
+  id: string;
+  name: string;
+  thumbnailLink?: string;
+}

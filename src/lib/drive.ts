@@ -1,4 +1,4 @@
-// Google Drive Service for Gallery
+// Google Drive Service for Gallery, Events, and Members
 // Uses API route for server-side authentication
 
 const API_BASE = '/api/drive';
@@ -9,15 +9,16 @@ export interface DriveImage {
   thumbnailLink: string;
   webContentLink: string;
   webViewLink: string;
-  description: string;
+  description?: string;
 }
 
 export interface DriveFolder {
   id: string;
   name: string;
+  thumbnailLink?: string;
 }
 
-// Get collections (folders) from the main Drive folder
+// Get collections (subfolders) from the main Drive folder - for Gallery
 export async function getCollections(): Promise<DriveFolder[]> {
   try {
     const response = await fetch(`${API_BASE}?action=collections`);
@@ -31,33 +32,75 @@ export async function getCollections(): Promise<DriveFolder[]> {
   }
 }
 
-// Get images from a specific folder
-export async function getGalleryImages(folderId?: string): Promise<DriveImage[]> {
+// Get images from a specific folder - for Gallery subfolders
+export async function getGalleryImages(folderId: string): Promise<DriveImage[]> {
   try {
-    const url = folderId 
-      ? `${API_BASE}?action=images&folderId=${encodeURIComponent(folderId)}`
-      : `${API_BASE}?action=images`;
-    
-    const response = await fetch(url);
+    const response = await fetch(`${API_BASE}?action=images&folderId=${encodeURIComponent(folderId)}`);
     if (!response.ok) {
       throw new Error('Failed to fetch images');
     }
     return await response.json();
   } catch (error) {
     console.error('Error fetching gallery images:', error);
-    return getFallbackImages();
+    return [];
+  }
+}
+
+// Get images from Events folder - for Event form selection
+export async function getEventImages(): Promise<DriveImage[]> {
+  try {
+    const response = await fetch(`${API_BASE}?action=images&type=events`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch event images');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching event images:', error);
+    return [];
+  }
+}
+
+// Get images from Members folder - for Member form selection
+export async function getMemberImages(): Promise<DriveImage[]> {
+  try {
+    const response = await fetch(`${API_BASE}?action=images&type=members`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch member images');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching member images:', error);
+    return [];
+  }
+}
+
+// Get all Drive images (for event/member image selection)
+export async function getAllDriveImages(): Promise<DriveImage[]> {
+  try {
+    const response = await fetch(`${API_BASE}?action=images`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch images');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching drive images:', error);
+    return [];
   }
 }
 
 // Generate direct thumbnail URL from Google Drive file ID
-// Generate proxy thumbnail URL via our own API route
-export function getDriveThumbnailUrl(fileId: string, _size: number = 800): string {
+export function getDriveThumbnailUrl(fileId: string): string {
   return `/api/drive?action=image&fileId=${fileId}`;
 }
 
 // Generate direct download URL from Google Drive file ID  
 export function getDriveDownloadUrl(fileId: string): string {
   return `https://drive.google.com/uc?export=download&id=${fileId}`;
+}
+
+// Generate web view link for storage in Firestore
+export function getDriveWebViewUrl(fileId: string): string {
+  return `https://drive.google.com/file/d/${fileId}/view`;
 }
 
 // Fallback images if API fails

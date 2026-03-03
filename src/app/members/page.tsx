@@ -1,20 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Edit, Trash2, Mail, Linkedin, Instagram } from "lucide-react";
+import { Users, Plus, Edit, Trash2, Mail, Linkedin, Instagram, FolderOpen, Image } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { membersService } from "@/client/services";
 import { useAuth } from "@/lib/AuthContext";
-import { TeamMember } from "@/types";
+import { TeamMember, DriveImage } from "@/types";
 import { FadeIn } from "@/components/ui/animations";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Input, Select } from "@/components/ui/Input";
 import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { SuccessToast } from "@/components/ui/SuccessToast";
-
 export default function MembersPage() {
   const { user } = useAuth();
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -31,7 +30,50 @@ export default function MembersPage() {
   });
   const [deleteItem, setDeleteItem] = useState<{id: string; name: string} | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  
+  // Drive image selection
+  const [showDriveModal, setShowDriveModal] = useState(false);
+  const [driveImages, setDriveImages] = useState<DriveImage[]>([]);
+  const [loadingDriveImages, setLoadingDriveImages] = useState(false);
+  const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch images from Drive for member photo selection
+  const openDrivePicker = async () => {
+    setShowDriveModal(true);
+    setLoadingDriveImages(true);
+    try {
+      const { getMemberImages } = await import('@/lib/drive');
+      const images = await getMemberImages();
+      setDriveImages(images);
+    } catch (error) {
+      console.error('Failed to load Drive images:', error);
+    } finally {
+      setLoadingDriveImages(false);
+    }
+  };
+
+  // Select image from Drive
+  const handleDriveImageSelect = (image: DriveImage) => {
+    // Store the thumbnailLink (direct image URL) for display in Firestore
+    // The thumbnailLink is /api/drive?action=image&fileId=XXX which works as img src
+    const imageUrl = image.thumbnailLink || image.webViewLink;
+    setPreviewPhotoUrl(image.thumbnailLink || imageUrl);
+    setFormData({ ...formData, photoUrl: imageUrl });
+    setShowDriveModal(false);
+  };
+
+  // Handle local file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setPreviewPhotoUrl(ev.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   useEffect(() => {
     const fetchMembers = async () => {
       try {
@@ -204,7 +246,21 @@ export default function MembersPage() {
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <Input label="Email" type="email" placeholder="Enter email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-            <Input label="Photo URL" placeholder="Enter photo URL" value={formData.photoUrl} onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })} />
+            <div>
+              <Input 
+                label="Photo URL" 
+                placeholder="Enter photo URL or choose from Drive" 
+                value={formData.photoUrl} 
+                onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })} 
+              />
+              <button 
+                type="button"
+                onClick={openDrivePicker}
+                className="mt-2 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <FolderOpen className="w-4 h-4" /> Choose from Google Drive
+              </button>
+            </div>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <Input label="LinkedIn URL" placeholder="Enter LinkedIn profile" value={formData.linkedin} onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })} />
@@ -231,6 +287,37 @@ export default function MembersPage() {
         isVisible={showSuccess}
         onClose={() => setShowSuccess(false)}
       />
+
+      {/* Drive Image Picker Modal */}
+      <Modal isOpen={showDriveModal} onClose={() => setShowDriveModal(false)} title="Choose Photo from Google Drive" size="2xl">
+        {loadingDriveImages ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
+          </div>
+        ) : driveImages.length === 0 ? (
+          <div className="text-center py-12">
+            <Image className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 mb-4">No images found in Drive</p>
+            <p className="text-sm text-gray-400">Upload member photos to your Google Drive folder first</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-96 overflow-y-auto p-2">
+            {driveImages.map((image) => (
+              <div 
+                key={image.id} 
+                onClick={() => handleDriveImageSelect(image)}
+                className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+              >
+                <img 
+                  src={image.thumbnailLink} 
+                  alt={image.name} 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
 
       <Footer />
     </>

@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
+
 import { Event, News, TeamMember, GalleryImage, Announcement, Notification } from '@/types';
 
 // Simple mapping functions
@@ -134,33 +135,48 @@ export const eventsService = {
   },
 
   async create(eventData: Omit<Event, 'id' | 'createdAt' | 'registeredUsers' | 'createdBy'>): Promise<string> {
-    const cleanData = Object.fromEntries(
-      Object.entries(eventData).filter(([_, v]) => v !== undefined && v !== null && v !== '')
-    );
-    const docRef = await addDoc(collection(db, 'events'), {
-      ...cleanData,
-      date: eventData.date instanceof Date ? eventData.date.toISOString().split('T')[0] : eventData.date,
-      registeredUsers: [],
-      createdAt: new Date().toISOString(),
-    });
-    await createNotificationGlobally({
-      title: 'New Event Added',
-      message: `${eventData.title} - ${new Date(eventData.date).toLocaleDateString()}`,
-      type: 'event',
-    });
-    return docRef.id;
+    try {
+      console.log('Creating event in Firestore:', eventData.title);
+      const cleanData = Object.fromEntries(
+        Object.entries(eventData).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+      );
+      const docRef = await addDoc(collection(db, 'events'), {
+        ...cleanData,
+        date: eventData.date instanceof Date ? eventData.date.toISOString().split('T')[0] : eventData.date,
+        registeredUsers: [],
+        createdAt: new Date().toISOString(),
+      });
+      console.log('Event created with ID:', docRef.id);
+      await createNotificationGlobally({
+        title: 'New Event Added',
+        message: `${eventData.title} - ${new Date(eventData.date).toLocaleDateString()}`,
+        type: 'event',
+      });
+      return docRef.id;
+    } catch (error) {
+      console.error('Firestore create error:', error);
+      throw error;
+    }
   },
 
   async createWithFile(eventData: Omit<Event, 'id' | 'createdAt' | 'registeredUsers' | 'createdBy'>, file: File): Promise<string> {
-    const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${file.name.split('.').pop()}`;
-    const storageRef = ref(storage, `events/${fileName}`);
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
-    return this.create({ ...eventData, imageUrl: url });
+    try {
+      console.log('Uploading to Google Drive:', file.name);
+      const driveFile = await driveService.upload(file, 'events', eventData.title);
+      console.log('Drive upload complete:', driveFile.url);
+      return this.create({ ...eventData, imageUrl: driveFile.url });
+    } catch (error) {
+      console.error('Drive upload error:', error);
+      throw error;
+    }
   },
 
   async update(id: string, data: Partial<Event>): Promise<void> {
-    await updateDoc(doc(db, 'events', id), data as any);
+    // Filter out undefined/null/empty values
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    await updateDoc(doc(db, 'events', id), cleanData as any);
   },
 
   async delete(id: string): Promise<void> {
@@ -219,15 +235,19 @@ export const newsService = {
   },
 
   async createWithFile(newsData: Omit<News, 'id' | 'createdAt' | 'createdBy'>, file: File): Promise<string> {
-    const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${file.name.split('.').pop()}`;
-    const storageRef = ref(storage, `news/${fileName}`);
+    // Upload to Firebase Storage
+    const fileName = `news/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${file.name.split('.').pop()}`;
+    const storageRef = ref(storage, fileName);
     await uploadBytes(storageRef, file);
     const url = await getDownloadURL(storageRef);
     return this.create({ ...newsData, imageUrl: url });
   },
 
   async update(id: string, data: Partial<News>): Promise<void> {
-    await updateDoc(doc(db, 'news', id), data as any);
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    await updateDoc(doc(db, 'news', id), cleanData as any);
   },
 
   async delete(id: string): Promise<void> {
@@ -250,14 +270,30 @@ export const membersService = {
     return docRef.id;
   },
 
+  async createWithFile(memberData: Omit<TeamMember, 'id'>, file: File): Promise<string> {
+    try {
+      console.log('Uploading to Google Drive:', file.name);
+      const driveFile = await driveService.upload(file, 'members', memberData.name);
+      console.log('Drive upload complete:', driveFile.url);
+      return this.create({ ...memberData, photoUrl: driveFile.url });
+    } catch (error) {
+      console.error('Drive upload error:', error);
+      throw error;
+    }
+  },
+
   async update(id: string, data: Partial<TeamMember>): Promise<void> {
-    await updateDoc(doc(db, 'team_members', id), data as any);
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    await updateDoc(doc(db, 'team_members', id), cleanData as any);
   },
 
   async delete(id: string): Promise<void> {
     await deleteDoc(doc(db, 'team_members', id));
-  },
+  }
 };
+
 
 export const announcementsService = {
   async getAll(): Promise<Announcement[]> {
@@ -281,7 +317,10 @@ export const announcementsService = {
   },
 
   async update(id: string, data: Partial<Announcement>): Promise<void> {
-    await updateDoc(doc(db, 'announcements', id), data as any);
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    await updateDoc(doc(db, 'announcements', id), cleanData as any);
   },
 
   async delete(id: string): Promise<void> {
@@ -303,11 +342,9 @@ export const galleryService = {
   },
 
   async upload(file: File, caption: string): Promise<string> {
-    const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${file.name.split('.').pop()}`;
-    const storageRef = ref(storage, `gallery/${fileName}`);
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
-    return this.add({ imageUrl: url, caption });
+    // Upload to Google Drive
+    const driveFile = await driveService.upload(file, 'gallery', caption);
+    return this.add({ imageUrl: driveFile.url, caption });
   },
 
   async delete(id: string): Promise<void> {
@@ -347,5 +384,75 @@ export const notificationsService = {
 
   async delete(id: string): Promise<void> {
     await deleteDoc(doc(db, 'notifications', id));
+  },
+};
+
+// ============================================
+// Google Drive Service
+// ============================================
+
+const DRIVE_API_BASE = '/api/drive';
+
+export interface DriveFile {
+  id: string;
+  name: string;
+  url: string;
+  downloadUrl: string;
+  webViewLink: string;
+}
+
+export const driveService = {
+  // Upload file to Google Drive
+  async upload(file: File, type: 'events' | 'members' | 'gallery' = 'events', customName?: string): Promise<DriveFile> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+    if (customName) {
+      formData.append('name', customName);
+    }
+
+    const response = await fetch(DRIVE_API_BASE, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to upload to Drive');
+    }
+
+    const data = await response.json();
+    return data.file;
+  },
+
+  // Get file URL from Drive
+  async getFileUrl(fileId: string): Promise<string> {
+    const response = await fetch(`${DRIVE_API_BASE}?action=url&fileId=${fileId}`);
+    if (!response.ok) {
+      throw new Error('Failed to get file URL');
+    }
+    const data = await response.json();
+    return data.url;
+  },
+
+  // Delete file from Drive
+  async delete(fileId: string): Promise<void> {
+    const response = await fetch(`${DRIVE_API_BASE}?fileId=${fileId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete from Drive');
+    }
+  },
+
+  // Get images from a specific type folder
+  async getImages(type: 'events' | 'members' | 'gallery' | 'news' | 'announcements' = 'events'): Promise<DriveFile[]> {
+    const response = await fetch(`${DRIVE_API_BASE}?action=images&type=${type}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch images');
+    }
+    return await response.json();
   },
 };
