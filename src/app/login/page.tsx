@@ -4,8 +4,9 @@ import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle, RefreshCw } from "lucide-react";
+import { getAuthErrorMessage } from "@/client/auth";
 import { motion } from "framer-motion";
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle, RefreshCw, AlertCircle } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -48,9 +49,10 @@ function LoginForm() {
       await login(email, password);
       router.push("/dashboard");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Login failed";
+      // Use friendly error message
+      const msg = getAuthErrorMessage(err);
       // Detect the unverified error from auth.ts
-      if (msg.includes('verify your email')) {
+      if (msg.includes('verify your email') || msg.includes('not verified')) {
         setIsUnverified(true);
       }
       setError(msg);
@@ -69,7 +71,7 @@ function LoginForm() {
       setResendSuccess(true);
       setResendCooldown(60);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to resend";
+      const msg = getAuthErrorMessage(err);
       setError(msg);
     } finally {
       setResendLoading(false);
@@ -187,7 +189,10 @@ function LoginForm() {
                 animate={{ opacity: 1, x: 0 }}
                 className="p-4 bg-red-50 border border-red-200 rounded-xl"
               >
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
                 <p className="text-sm text-red-600">{error}</p>
+              </div>
               </motion.div>
             )}
 

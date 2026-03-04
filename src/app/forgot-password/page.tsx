@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { authService } from "@/client/auth";
+import { authService, getAuthErrorMessage } from "@/client/auth";
 
 function ForgotPasswordForm() {
   const router = useRouter();
@@ -46,7 +46,7 @@ function ForgotPasswordForm() {
         });
       }, 1000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to send reset email";
+      const msg = getAuthErrorMessage(err);
       setError(msg);
     } finally {
       setLoading(false);

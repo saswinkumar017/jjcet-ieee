@@ -28,6 +28,55 @@ function mapFirebaseUserToUser(firebaseUser: FirebaseUser, additionalData: any =
   };
 }
 
+// Translate Firebase auth error codes to user-friendly messages
+export function getAuthErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "An unexpected error occurred. Please try again.";
+  }
+  
+  const message = error.message;
+  
+  // Custom errors
+  if (message === 'CONFIRMATION_REQUIRED') {
+    return "Registration successful! Please check your email to verify your account.";
+  }
+  
+  // Firebase auth errors
+  if (message.includes('auth/invalid-email')) {
+    return "Please enter a valid email address.";
+  }
+  if (message.includes('auth/user-disabled')) {
+    return "This account has been disabled. Please contact support.";
+  }
+  if (message.includes('auth/user-not-found')) {
+    return "No account found with this email. Please register first.";
+  }
+  if (message.includes('auth/wrong-password')) {
+    return "Incorrect password. Please try again.";
+  }
+  if (message.includes('auth/email-already-in-use')) {
+    return "An account with this email already exists.";
+  }
+  if (message.includes('auth/weak-password')) {
+    return "Password is too weak. Please use at least 6 characters.";
+  }
+  if (message.includes('auth/network-request-failed')) {
+    return "Network error. Please check your internet connection.";
+  }
+  if (message.includes('auth/too-many-requests')) {
+    return "Too many attempts. Please try again later.";
+  }
+  if (message.includes('auth/popup-closed-by-user')) {
+    return "Sign-in was cancelled. Please try again.";
+  }
+  if (message.includes('auth/invalid-credential')) {
+    return "Invalid email or password. Please check your credentials.";
+  }
+  
+  // Default fallback
+  return "An error occurred. Please try again.";
+}
+
 export const authService = {
   // Register new user with email verification
   async register(

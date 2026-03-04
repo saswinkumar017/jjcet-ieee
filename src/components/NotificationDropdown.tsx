@@ -10,9 +10,10 @@ import { useAuth } from "@/lib/AuthContext";
 
 interface NotificationDropdownProps {
   onClose?: () => void;
+  onUnreadCountChange?: (count: number) => void;
 }
 
-export default function NotificationDropdown({ onClose }: NotificationDropdownProps) {
+export default function NotificationDropdown({ onClose, onUnreadCountChange }: NotificationDropdownProps) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -43,10 +44,12 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
   const handleMarkAsRead = async (id: string) => {
     try {
       await notificationsService.markAsRead(id);
+      const newCount = Math.max(0, unreadCount - 1);
+      setUnreadCount(newCount);
+      onUnreadCountChange?.(newCount);
       setNotifications(prev => 
         prev.map(n => n.id === id ? { ...n, isRead: true } : n)
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error("Failed to mark as read:", error);
     }
@@ -55,8 +58,9 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
   const handleMarkAllAsRead = async () => {
     try {
       await notificationsService.markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);
+      onUnreadCountChange?.(0);
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (error) {
       console.error("Failed to mark all as read:", error);
     }

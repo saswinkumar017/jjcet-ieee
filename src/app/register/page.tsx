@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
-import { authService } from "@/client/auth";
-import { Mail, Lock, User, Phone, Eye, EyeOff, GraduationCap, ArrowLeft, CheckCircle } from "lucide-react";
+import { authService, getAuthErrorMessage } from "@/client/auth";
+import { Mail, Lock, User, Phone, Eye, EyeOff, GraduationCap, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 const branches = [
@@ -74,7 +74,7 @@ export default function RegisterPage() {
           // Email confirmation required - show success message
           setStep("success");
         } else {
-          setError(err.message);
+          setError(getAuthErrorMessage(err));
         }
       } else {
         setError("Registration failed. Please try again.");
@@ -103,13 +103,12 @@ export default function RegisterPage() {
   };
 
 
-  // Countdown timer
-  useState(() => {
+  useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     }
-  });
+  }, [countdown]);
 
   // Success Screen
   if (step === "success") {
@@ -176,13 +175,15 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
         </motion.div>
       </div>
     );
+
   }
 
   // Registration Form

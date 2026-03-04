@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
 import { Menu, X, User, LogOut, Settings, Sparkles, ChevronDown, Bell } from "lucide-react";
 import NotificationDropdown from "./NotificationDropdown";
+import { notificationsService } from "@/client/services";
 
 const navItems = [
   { name: "Home", href: "/" },
@@ -23,6 +24,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -54,6 +56,26 @@ export default function Header() {
     setUserMenuOpen(false);
     setNotificationOpen(false);
   }, [pathname]);
+
+  // Load notification count
+  useEffect(() => {
+    const loadNotificationCount = async () => {
+      if (user) {
+        try {
+          const data = await notificationsService.getAll(0, 1);
+          setNotificationCount(data.unreadCount);
+        } catch (err) {
+          console.error("Failed to load notification count:", err);
+        }
+      } else {
+        setNotificationCount(0);
+      }
+    };
+    loadNotificationCount();
+    // Poll every 30 seconds
+    const interval = setInterval(loadNotificationCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -108,8 +130,13 @@ export default function Header() {
                   )}
                 >
                   <Bell className="w-5 h-5 text-gray-600" />
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      {notificationCount > 99 ? "99+" : notificationCount}
+                    </span>
+                  )}
                 </button>
-                {notificationOpen && <NotificationDropdown onClose={() => setNotificationOpen(false)} />}
+                {notificationOpen && <NotificationDropdown onClose={() => setNotificationOpen(false)} onUnreadCountChange={setNotificationCount} />}
               </div>
             )}
             {user ? (
