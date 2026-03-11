@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Users, Plus, Edit, Trash2, Mail, Linkedin, Instagram, FolderOpen, Image } from "lucide-react";
 import Header from "@/components/Header";
@@ -14,6 +14,54 @@ import { Modal } from "@/components/ui/Modal";
 import { Input, Select } from "@/components/ui/Input";
 import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { SuccessToast } from "@/components/ui/SuccessToast";
+
+interface MemberCardProps {
+  member: TeamMember;
+  index: number;
+  isAdmin: boolean;
+  onEdit: (member: TeamMember) => void;
+  onDelete: (id: string, name: string) => void;
+}
+
+function MemberCard({ member, index, isAdmin, onEdit, onDelete }: MemberCardProps) {
+  return (
+    <FadeIn key={member.id} delay={index * 0.05}>
+      <motion.div whileHover={{ y: -10 }}
+        className="group bg-surface rounded-2xl border border-border overflow-hidden hover:border-primary/30 hover:shadow-xl transition-all"
+      >
+        <div className="relative">
+          <div className="aspect-[4/5] overflow-hidden">
+            {member.photoUrl ? (
+              <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                <Users className="w-12 h-12 text-primary/30" />
+              </div>
+            )}
+          </div>
+          {isAdmin && (
+            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+              <button onClick={() => onEdit(member)} className="p-2 bg-white shadow-lg rounded-lg hover:bg-primary-light">
+                <Edit className="w-4 h-4" />
+              </button>
+              <button onClick={() => onDelete(member.id, member.name)} className="p-2 bg-error text-white shadow-lg rounded-lg">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="p-3 text-center">
+          <h3 className="font-bold text-sm text-foreground">{member.name}</h3>
+          <p className="text-primary font-medium text-xs mb-2">{member.role}</p>
+          <div className="flex justify-center gap-1">
+            {member.email && <a href={`mailto:${member.email}`} className="p-1.5 bg-muted/20 rounded-lg hover:bg-primary-light transition-all"><Mail className="w-3 h-3" /></a>}
+          </div>
+        </div>
+      </motion.div>
+    </FadeIn>
+  );
+}
+
 export default function MembersPage() {
   const { user } = useAuth();
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -27,6 +75,7 @@ export default function MembersPage() {
     photoUrl: "",
     linkedin: "",
     order: 0,
+    memberType: "student" as "faculty" | "student",
   });
   const [deleteItem, setDeleteItem] = useState<{id: string; name: string} | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -37,6 +86,14 @@ export default function MembersPage() {
   const [loadingDriveImages, setLoadingDriveImages] = useState(false);
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Memoized filtering to prevent re-rendering on form input changes
+  const facultyMembers = useMemo(() => 
+    members.filter(m => m.memberType === "faculty"), 
+  [members]);
+  const studentMembers = useMemo(() => 
+    members.filter(m => m.memberType !== "faculty"), 
+  [members]);
 
   // Fetch images from Drive for member photo selection
   const openDrivePicker = async () => {
@@ -122,7 +179,9 @@ export default function MembersPage() {
 
   const openCreate = () => {
     setEditingMember(null);
-    setFormData({ name: "", role: "", email: "", photoUrl: "", linkedin: "", order: members.length + 1 });
+    const facultyCount = members.filter(m => m.memberType === "faculty").length;
+    const studentCount = members.filter(m => m.memberType !== "faculty").length;
+    setFormData({ name: "", role: "", email: "", photoUrl: "", linkedin: "", order: studentCount + 1, memberType: "student" });
     setShowModal(true);
   };
 
@@ -135,6 +194,7 @@ export default function MembersPage() {
       photoUrl: member.photoUrl || "",
       linkedin: member.linkedin || "",
       order: member.order,
+      memberType: member.memberType || "student",
     });
     setShowModal(true);
   };
@@ -179,55 +239,58 @@ export default function MembersPage() {
       <section className="py-16 md:py-20 bg-backgroundbg-slate-900">
         <div className="container-custom">
           {loading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1,2,3,4,5,6,7,8].map((i) => (
-                <div key={i} className="bg-surface rounded-2xl border border-border p-6 text-center">
-                  <div className="w-32 h-32 mx-auto bg-muted/20 rounded-full animate-pulse mb-4" />
-                  <div className="h-5 bg-muted/20 rounded w-2/3 mx-auto mb-2" />
-                  <div className="h-4 bg-muted/20 rounded w-1/2 mx-auto" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {[1,2,3,4,5,6,7,8,9,10,11,12].map((i) => (
+                <div key={i} className="bg-surface rounded-2xl border border-border p-3 text-center">
+                  <div className="w-full aspect-[4/5] mx-auto bg-muted/20 rounded-2xl animate-pulse mb-3" />
+                  <div className="h-4 bg-muted/20 rounded w-2/3 mx-auto mb-2" />
+                  <div className="h-3 bg-muted/20 rounded w-1/2 mx-auto" />
                 </div>
               ))}
             </div>
           ) : members.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {members.map((member, index) => (
-                <FadeIn key={member.id} delay={index * 0.05}>
-                  <motion.div whileHover={{ y: -10 }}
-                    className="group bg-surface rounded-2xl border border-border overflow-hidden hover:border-primary/30 hover:shadow-xl transition-all"
-                  >
-                    <div className="relative">
-                      <div className="aspect-square overflow-hidden">
-                        {member.photoUrl ? (
-                          <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                            <Users className="w-20 h-20 text-primary/30" />
-                          </div>
-                        )}
-                      </div>
-                      {user?.role === "admin" && (
-                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                          <button onClick={() => openEdit(member)} className="p-2 bg-white shadow-lg rounded-lg hover:bg-primary-light">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDeleteClick(member.id, member.name)} className="p-2 bg-error text-white shadow-lg rounded-lg">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-5 text-center">
-                      <h3 className="font-bold text-lg text-foreground">{member.name}</h3>
-                      <p className="text-primary font-medium text-sm mb-3">{member.role}</p>
-                      <div className="flex justify-center gap-2">
-                        {member.email && <a href={`mailto:${member.email}`} className="p-2 bg-muted/20 rounded-lg hover:bg-primary-light transition-all"><Mail className="w-4 h-4" /></a>}
-                        {member.linkedin && <a href={member.linkedin} target="_blank" className="p-2 bg-muted/20 rounded-lg hover:bg-blue-100 transition-all"><Linkedin className="w-4 h-4" /></a>}
-                      </div>
-                    </div>
-                  </motion.div>
-                </FadeIn>
-              ))}
-            </div>
+            <>
+              {facultyMembers.length > 0 && (
+                <div className="mb-16">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="w-1 h-8 bg-primary rounded-full"></div>
+                    <h2 className="text-2xl font-bold text-foreground">Faculty Members</h2>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {facultyMembers.map((member, index) => (
+                      <MemberCard 
+                        key={member.id} 
+                        member={member} 
+                        index={index} 
+                        isAdmin={user?.role === "admin"}
+                        onEdit={openEdit}
+                        onDelete={handleDeleteClick}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {studentMembers.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="w-1 h-8 bg-accent rounded-full"></div>
+                    <h2 className="text-2xl font-bold text-foreground">Student Members</h2>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {studentMembers.map((member, index) => (
+                      <MemberCard 
+                        key={member.id} 
+                        member={member} 
+                        index={index} 
+                        isAdmin={user?.role === "admin"}
+                        onEdit={openEdit}
+                        onDelete={handleDeleteClick}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center py-16">
               <Users className="w-16 h-16 text-muted mx-auto mb-4" />
@@ -263,8 +326,22 @@ export default function MembersPage() {
             </div>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
-            <Input label="LinkedIn URL" placeholder="Enter LinkedIn profile" value={formData.linkedin} onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })} />
             <Input label="Display Order" type="number" value={formData.order} onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })} />
+            <Select 
+              label="Member Type" 
+              value={formData.memberType} 
+              onChange={(e) => {
+                const newType = e.target.value as "faculty" | "student";
+                const count = newType === "faculty" 
+                  ? members.filter(m => m.memberType === "faculty").length 
+                  : members.filter(m => m.memberType !== "faculty").length;
+                setFormData({ ...formData, memberType: newType, order: count + 1 });
+              }}
+              options={[
+                { value: "student", label: "Student" },
+                { value: "faculty", label: "Faculty" },
+              ]}
+            />
           </div>
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button>

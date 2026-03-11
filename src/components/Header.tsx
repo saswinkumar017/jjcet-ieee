@@ -57,13 +57,27 @@ export default function Header() {
     setNotificationOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
   // Load notification count
   useEffect(() => {
     const loadNotificationCount = async () => {
-      if (user) {
+      if (user?.uid) {
         try {
-          const data = await notificationsService.getAll(0, 1);
-          setNotificationCount(data.unreadCount);
+          const count = await notificationsService.getUnreadCount(user.uid);
+          setNotificationCount(count);
         } catch (err) {
           console.error("Failed to load notification count:", err);
         }
@@ -83,7 +97,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-border shadow-sm relative z-40">
+    <header className="bg-gradient-to-b from-white/80 to-primary-light/30 border-b border-border/50 shadow-sm relative z-40">
       <div className="container-custom">
         <div className="flex items-center justify-between h-16 md:h-20">
           <Link href="/" className="flex items-center gap-2">
@@ -207,14 +221,9 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              <>
-                <Link href="/login" className="px-4 py-2 text-sm font-medium text-muted hover:text-primary transition-all duration-300 hover:scale-105">
-                  Login
-                </Link>
-                <Link href="/register" className="btn-primary text-sm px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5">
-                  Register
-                </Link>
-              </>
+              <Link href="/login" className="btn-primary text-sm px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5">
+                Login
+              </Link>
             )}
           </div>
 
@@ -227,8 +236,8 @@ export default function Header() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="lg:hidden py-3 px-2 border-t border-border animate-fade-in-down">
-            <nav className="flex flex-col gap-1">
+          <div className="lg:hidden fixed inset-0 top-16 md:top-20 bg-white/95 backdrop-blur-sm z-40 overflow-y-auto">
+            <nav className="flex flex-col gap-1 px-4">
               {navItems.map((item) => (
                 <Link
                   key={item.name}
@@ -268,14 +277,9 @@ export default function Header() {
                     </button>
                   </>
                 ) : (
-                  <>
-                    <Link href="/login" className="px-4 py-2.5 text-sm font-medium text-foreground bg-primary-light/50 rounded-xl text-center">
-                      Login
-                    </Link>
-                    <Link href="/register" className="btn-primary text-sm text-center mx-2">
-                      Register
-                    </Link>
-                  </>
+                  <Link href="/login" className="px-4 py-2.5 text-sm font-medium text-foreground bg-primary-light/50 rounded-xl text-center">
+                    Login
+                  </Link>
                 )}
               </div>
             </nav>

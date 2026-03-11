@@ -15,6 +15,13 @@ export interface User {
 
 export type EventCategory = "competition" | "guest_lecture" | "workshop" | "other";
 
+export interface EventField {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "number" | "url" | "date";
+  value: string;
+}
+
 export interface Event {
   id: string;
   title: string;
@@ -27,21 +34,13 @@ export interface Event {
   createdBy: string;
   createdAt: Date;
   registeredUsers: string[];
-  // Competition specific
+  // Dynamic event fields
+  fields?: EventField[];
+  // Registration settings
+  showRegister: boolean;
+  registerLink: string;
+  showDeadline: boolean;
   registrationDeadline?: Date;
-  teamMinSize?: number;
-  teamMaxSize?: number;
-  prizes?: string;
-  rulesLink?: string;
-  // Guest Lecture specific
-  guestName?: string;
-  guestDesignation?: string;
-  topic?: string;
-  // Workshop specific
-  trainerName?: string;
-  prerequisites?: string;
-  duration?: number;
-  materials?: string;
 }
 
 export interface News {
@@ -62,6 +61,7 @@ export interface TeamMember {
   email: string;
   linkedin?: string;
   order: number;
+  memberType?: "faculty" | "student";
 }
 
 export interface GalleryImage {
@@ -89,6 +89,8 @@ export interface Notification {
   referenceUrl: string;
   isRead: boolean;
   createdAt: Date;
+  readBy?: string[];
+  deletedBy?: string[];
 }
 
 export interface DriveImage {

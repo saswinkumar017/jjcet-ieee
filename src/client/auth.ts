@@ -8,7 +8,7 @@ import {
   updatePassword,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User } from '@/types';
 
@@ -227,6 +227,11 @@ export const authService = {
     const user = auth.currentUser;
     if (!user) throw new Error('No user logged in');
     await updatePassword(user, newPassword);
+  },
+
+  // Update user profile
+  async updateUser(userId: string, data: { displayName?: string; phone?: string; branch?: string; year?: string; ieeeMemberId?: string }): Promise<void> {
+    await updateDoc(doc(db, 'users', userId), data);
   },
 };
 

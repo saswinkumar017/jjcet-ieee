@@ -30,18 +30,11 @@ function mapEventFromFirestore(data: any): Event {
     createdBy: data.createdBy || '',
     createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
     registeredUsers: data.registeredUsers || [],
+    fields: data.fields || [],
+    showRegister: data.showRegister ?? true,
+    registerLink: data.registerLink || '',
+    showDeadline: data.showDeadline ?? false,
     registrationDeadline: data.registrationDeadline ? new Date(data.registrationDeadline) : undefined,
-    teamMinSize: data.teamMinSize,
-    teamMaxSize: data.teamMaxSize,
-    prizes: data.prizes,
-    rulesLink: data.rulesLink,
-    guestName: data.guestName,
-    guestDesignation: data.guestDesignation,
-    topic: data.topic,
-    trainerName: data.trainerName,
-    prerequisites: data.prerequisites,
-    duration: data.duration,
-    materials: data.materials,
   };
 }
 
@@ -66,6 +59,7 @@ function mapMemberFromFirestore(data: any): TeamMember {
     email: data.email || '',
     linkedin: data.linkedin || '',
     order: data.order || 0,
+    memberType: data.memberType || 'student',
   };
 }
 
@@ -89,6 +83,8 @@ function mapNotificationFromFirestore(data: any): Notification {
     referenceUrl: data.referenceUrl || '',
     isRead: data.isRead || false,
     createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+    readBy: data.readBy || [],
+    deletedBy: data.deletedBy || [],
   };
 }
 
@@ -137,12 +133,21 @@ export const eventsService = {
   async create(eventData: Omit<Event, 'id' | 'createdAt' | 'registeredUsers' | 'createdBy'>): Promise<string> {
     try {
       console.log('Creating event in Firestore:', eventData.title);
-      const cleanData = Object.fromEntries(
-        Object.entries(eventData).filter(([_, v]) => v !== undefined && v !== null && v !== '')
-      );
+      
+      // Prepare data for Firestore
+      const firestoreData: Record<string, any> = {};
+      for (const [key, value] of Object.entries(eventData)) {
+        if (value !== undefined && value !== null && value !== '') {
+          if (value instanceof Date) {
+            firestoreData[key] = value.toISOString().split('T')[0];
+          } else {
+            firestoreData[key] = value;
+          }
+        }
+      }
+      
       const docRef = await addDoc(collection(db, 'events'), {
-        ...cleanData,
-        date: eventData.date instanceof Date ? eventData.date.toISOString().split('T')[0] : eventData.date,
+        ...firestoreData,
         registeredUsers: [],
         createdAt: new Date().toISOString(),
       });
@@ -151,6 +156,7 @@ export const eventsService = {
         title: 'New Event Added',
         message: `${eventData.title} - ${new Date(eventData.date).toLocaleDateString()}`,
         type: 'event',
+        referenceUrl: `/events/${docRef.id}`,
       });
       return docRef.id;
     } catch (error) {
@@ -172,11 +178,25 @@ export const eventsService = {
   },
 
   async update(id: string, data: Partial<Event>): Promise<void> {
-    // Filter out undefined/null/empty values
-    const cleanData = Object.fromEntries(
-      Object.entries(data).filter(([_, v]) => v !== undefined && v !== null && v !== '')
-    );
-    await updateDoc(doc(db, 'events', id), cleanData as any);
+    // Prepare data for Firestore
+    const updateData: Record<string, any> = { ...data };
+    
+    // Convert Date objects to Firestore-compatible format (ISO string)
+    if (updateData.date instanceof Date) {
+      updateData.date = updateData.date.toISOString().split('T')[0];
+    }
+    if (updateData.registrationDeadline instanceof Date) {
+      updateData.registrationDeadline = updateData.registrationDeadline.toISOString().split('T')[0];
+    }
+    
+    // Only filter out truly undefined values
+    const cleanData: Record<string, any> = {};
+    for (const [key, value] of Object.entries(updateData)) {
+      if (value !== undefined) {
+        cleanData[key] = value;
+      }
+    }
+    await updateDoc(doc(db, 'events', id), cleanData);
   },
 
   async delete(id: string): Promise<void> {
@@ -230,7 +250,7 @@ export const newsService = {
       ...cleanData,
       createdAt: new Date().toISOString(),
     });
-    await createNotificationGlobally({ title: 'News Update', message: newsData.title, type: 'news' });
+    await createNotificationGlobally({ title: 'News Update', message: newsData.title, type: 'news', referenceUrl: '/announcements' });
     return docRef.id;
   },
 
@@ -337,7 +357,7 @@ export const galleryService = {
 
   async add(imageData: Omit<GalleryImage, 'id' | 'uploadedAt'>): Promise<string> {
     const docRef = await addDoc(collection(db, 'gallery'), { ...imageData, uploadedAt: new Date().toISOString() });
-    await createNotificationGlobally({ title: 'New Gallery Update', message: imageData.caption || 'New photos', type: 'gallery' });
+    await createNotificationGlobally({ title: 'New Gallery Update', message: imageData.caption || 'New photos', type: 'gallery', referenceUrl: '/gallery' });
     return docRef.id;
   },
 
@@ -353,37 +373,96 @@ export const galleryService = {
 };
 
 export const notificationsService = {
-  async getAll(offset = 0, limitVal = 50): Promise<{ notifications: Notification[]; unreadCount: number }> {
+  async getAll(userId: string, offset = 0, limitVal = 50): Promise<{ notifications: Notification[]; unreadCount: number }> {
     const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'), firestoreLimit(offset + limitVal));
     const snapshot = await getDocs(q);
-    const notifications = snapshot.docs.map(d => mapNotificationFromFirestore({ id: d.id, ...d.data() }));
-    return { notifications: notifications.slice(offset, offset + limitVal), unreadCount: notifications.filter(n => !n.isRead).length };
+    const allNotifications = snapshot.docs.map(d => mapNotificationFromFirestore({ id: d.id, ...d.data() }));
+    
+    // Filter out notifications deleted by this user
+    const notifications = allNotifications
+      .filter(n => !n.deletedBy?.includes(userId))
+      .slice(offset, offset + limitVal);
+    
+    // Count unread for this user (not in readBy array)
+    const unreadCount = allNotifications
+      .filter(n => !n.deletedBy?.includes(userId) && !n.readBy?.includes(userId))
+      .length;
+    
+    return { notifications, unreadCount };
   },
 
-  async getUnread(): Promise<Notification[]> {
+  async getUnread(userId: string): Promise<Notification[]> {
     const q = query(collection(db, 'notifications'), where('isRead', '==', false), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(d => mapNotificationFromFirestore({ id: d.id, ...d.data() }));
+    const notifications = snapshot.docs.map(d => mapNotificationFromFirestore({ id: d.id, ...d.data() }));
+    return notifications.filter(n => !n.deletedBy?.includes(userId) && !n.readBy?.includes(userId));
   },
 
-  async getUnreadCount(): Promise<number> {
-    const q = query(collection(db, 'notifications'), where('isRead', '==', false));
+  async getUnreadCount(userId: string): Promise<number> {
+    const q = query(collection(db, 'notifications'));
     const snapshot = await getDocs(q);
-    return snapshot.size;
+    const notifications = snapshot.docs.map(d => mapNotificationFromFirestore({ id: d.id, ...d.data() }));
+    return notifications.filter(n => !n.deletedBy?.includes(userId) && !n.readBy?.includes(userId)).length;
   },
 
-  async markAsRead(id: string): Promise<void> {
-    await updateDoc(doc(db, 'notifications', id), { isRead: true });
+  async markAsRead(userId: string, id: string): Promise<void> {
+    const docRef = doc(db, 'notifications', id);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return;
+    
+    const data = docSnap.data();
+    const readBy = data.readBy || [];
+    
+    if (!readBy.includes(userId)) {
+      await updateDoc(docRef, { 
+        readBy: [...readBy, userId],
+        isRead: true 
+      });
+    }
   },
 
-  async markAllAsRead(): Promise<void> {
-    const q = query(collection(db, 'notifications'), where('isRead', '==', false));
+  async markAllAsRead(userId: string): Promise<void> {
+    const q = query(collection(db, 'notifications'));
     const snapshot = await getDocs(q);
-    await Promise.all(snapshot.docs.map(d => updateDoc(d.ref, { isRead: true })));
+    
+    await Promise.all(snapshot.docs.map(async (d) => {
+      const data = d.data();
+      const readBy = data.readBy || [];
+      
+      if (!readBy.includes(userId)) {
+        await updateDoc(d.ref, { 
+          readBy: [...readBy, userId],
+          isRead: true 
+        });
+      }
+    }));
   },
 
-  async delete(id: string): Promise<void> {
-    await deleteDoc(doc(db, 'notifications', id));
+  async delete(userId: string, id: string): Promise<void> {
+    const docRef = doc(db, 'notifications', id);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return;
+    
+    const data = docSnap.data();
+    const deletedBy = data.deletedBy || [];
+    
+    if (!deletedBy.includes(userId)) {
+      await updateDoc(docRef, { deletedBy: [...deletedBy, userId] });
+    }
+  },
+
+  async deleteAll(userId: string): Promise<void> {
+    const q = query(collection(db, 'notifications'));
+    const snapshot = await getDocs(q);
+    
+    await Promise.all(snapshot.docs.map(async (d) => {
+      const data = d.data();
+      const deletedBy = data.deletedBy || [];
+      
+      if (!deletedBy.includes(userId)) {
+        await updateDoc(d.ref, { deletedBy: [...deletedBy, userId] });
+      }
+    }));
   },
 };
 

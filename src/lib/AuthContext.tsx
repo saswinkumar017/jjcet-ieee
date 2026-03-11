@@ -22,6 +22,7 @@ interface AuthContextType {
   ) => Promise<User>;
   logout: () => Promise<void>;
   resendVerificationEmail: (email: string, password: string) => Promise<void>;
+  updateProfile: (data: { displayName?: string; phone?: string; branch?: string; year?: string; ieeeMemberId?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -138,6 +139,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     resendVerificationEmail: async (email: string, password: string) => {
       await authService.resendVerificationEmail(email, password);
+    },
+    updateProfile: async (data: { displayName?: string; phone?: string; branch?: string; year?: string; ieeeMemberId?: string }) => {
+      if (!user) return;
+      // Update in Firestore
+      await authService.updateUser(user.uid, data);
+      // Update local state
+      const updatedUser = { ...user, ...data };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
     },
   };
 

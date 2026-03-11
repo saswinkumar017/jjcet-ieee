@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { AlertTriangle, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,20 @@ export default function ConfirmModal({
   variant = "danger",
   loading = false,
 }: ConfirmModalProps) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const variantStyles = {

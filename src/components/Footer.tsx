@@ -10,10 +10,10 @@ const quickLinks = [
 ];
 
 const socialLinks = [
-  { name: "Facebook", icon: Facebook, href: "https://facebook.com" },
-  { name: "Instagram", icon: Instagram, href: "https://instagram.com" },
-  { name: "LinkedIn", icon: Linkedin, href: "https://linkedin.com" },
-  { name: "YouTube", icon: Youtube, href: "https://youtube.com" },
+  { name: "Facebook", icon: Facebook, href: "hhttps://www.facebook.com/SowdambikaaJJCET/" },
+  { name: "Instagram", icon: Instagram, href: "https://www.instagram.com/sowdambikaajjcet/" },
+  { name: "LinkedIn", icon: Linkedin, href: "https://www.linkedin.com/school/15120055/admin/dashboard" },
+  { name: "YouTube", icon: Youtube, href: "https://youtube.com/@jjcet1994" },
 ];
 
 export default function Footer() {
@@ -111,7 +111,7 @@ export default function Footer() {
         <div className="border-t border-white/10 mt-8 md:mt-12 pt-6 md:pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-500 text-sm">
-              © 2024 JJCET IEEE Student Branch. All rights reserved.
+              © 2026 JJCET IEEE Student Branch. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm text-gray-500">
               <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>

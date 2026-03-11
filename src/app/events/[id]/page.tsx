@@ -8,7 +8,12 @@ import Footer from "@/components/Footer";
 import { eventsService } from "@/client/services";
 import { useAuth } from "@/lib/AuthContext";
 import { Event } from "@/types";
-import { Calendar, Clock, MapPin, Users, ArrowLeft, ArrowRight, Share2, Check } from "lucide-react";
+import { motion } from "framer-motion";
+import { 
+  Calendar, Clock, MapPin, Users, ArrowLeft, ArrowRight, Share2, Check, 
+  Trophy, Mic, GraduationCap, AlertCircle
+} from "lucide-react";
+import { getCategoryInfo, getFieldIcon } from "@/lib/eventConfig";
 
 const formatDate = (date: Date | string | number): string => {
   const d = new Date(date);
@@ -26,7 +31,6 @@ export default function EventDetailPage() {
   const { user } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
-  const [registering, setRegistering] = useState(false);
   const [registered, setRegistered] = useState(false);
 
   useEffect(() => {
@@ -43,39 +47,128 @@ export default function EventDetailPage() {
         setLoading(false);
       }
     };
-
     fetchEvent();
   }, [params.id, user]);
 
-  const handleRegister = async () => {
+  const handleRegister = () => {
+    if (!event?.registerLink) return;
     if (!user) {
       router.push("/login");
       return;
     }
+    window.open(event.registerLink, "_blank");
+  };
 
-    setRegistering(true);
+  const handleInternalRegister = async () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     try {
       await eventsService.registerUser(params.id as string, user.uid);
       setRegistered(true);
     } catch (error) {
       console.error("Failed to register", error);
-    } finally {
-      setRegistering(false);
     }
   };
 
   const handleUnregister = async () => {
     if (!user) return;
-
-    setRegistering(true);
     try {
       await eventsService.unregisterUser(params.id as string, user.uid);
       setRegistered(false);
     } catch (error) {
       console.error("Failed to unregister", error);
-    } finally {
-      setRegistering(false);
     }
+  };
+
+  const isRegistrationOpen = (): boolean => {
+    if (!event) return false;
+    if (!event.showRegister) return false;
+    if (!isUpcoming) return false;
+    if (event.showDeadline && event.registrationDeadline) {
+      const deadlineDate = new Date(event.registrationDeadline);
+      if (deadlineDate < new Date()) return false;
+    }
+    return true;
+  };
+
+  const isEventUpcoming = (eventDate: Date | string, eventTime: string) => {
+    const date = new Date(eventDate);
+    const today = new Date();
+    
+    if (eventTime) {
+      const [hours, minutes] = eventTime.split(':').map(Number);
+      date.setHours(hours || 0, minutes || 0, 0, 0);
+    } else {
+      date.setHours(23, 59, 59, 999);
+    }
+    
+    return date > today;
+  };
+
+  const isUpcoming = event ? isEventUpcoming(event.date, event.time) : false;
+  const registrationOpen = isRegistrationOpen();
+  const categoryInfo = event ? getCategoryInfo(event.category) : null;
+
+  const renderField = (field: { key: string; label: string; type: string; value: string }) => {
+    const Icon = getFieldIcon(field.key);
+    
+    if (field.key === "rules" && field.value) {
+      return (
+        <a 
+          key={field.key} 
+          href={field.value} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="flex items-center gap-3 p-4 bg-primary-light/30 rounded-lg hover:bg-primary-light/50 transition-colors"
+        >
+          <Icon className="w-5 h-5 text-primary shrink-0" />
+          <span className="font-medium text-primary">View Rules & Regulations</span>
+        </a>
+      );
+    }
+
+    if (field.key === "teamSize" && field.value) {
+      return (
+        <div key={field.key} className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center shrink-0">
+            <Icon className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm text-muted">{field.label}</p>
+            <p className="font-medium text-foreground">{field.value}</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (field.key === "duration" && field.value) {
+      const numValue = Number(field.value);
+      return (
+        <div key={field.key} className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center shrink-0">
+            <Icon className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm text-muted">{field.label}</p>
+            <p className="font-medium text-foreground">{numValue} hour{numValue > 1 ? 's' : ''}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={field.key} className="flex items-start gap-3">
+        <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center shrink-0">
+          <Icon className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <p className="text-sm text-muted">{field.label}</p>
+          <p className="font-medium text-foreground whitespace-pre-wrap">{field.value}</p>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -96,9 +189,7 @@ export default function EventDetailPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground mb-4">Event Not Found</h1>
-            <Link href="/events" className="btn-primary">
-              Back to Events
-            </Link>
+            <Link href="/events" className="btn-primary">Back to Events</Link>
           </div>
         </div>
         <Footer />
@@ -106,61 +197,41 @@ export default function EventDetailPage() {
     );
   }
 
-  const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
-  const isUpcoming = !isNaN(eventDate.getTime()) && eventDate > new Date();
-
   return (
     <>
       <Header />
       
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-primary via-primary-dark to-[#003a5e]from-slate-900via-slate-800to-[#0f172a] text-white py-16">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 25% 25%, rgba(255,255,255,0.3) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px'
-          }}></div>
-        </div>
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-purple-600 via-violet-700 to-fuchsia-800 text-white py-16">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `radial-gradient(circle at 25% 25%, rgba(255,255,255,0.3) 1px, transparent 1px)`, backgroundSize: '50px 50px' }} />
         
         <div className="container-custom relative">
           <Link href="/events" className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-8 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Events
+            <ArrowLeft className="w-4 h-4" /> Back to Events
           </Link>
 
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              {isUpcoming && (
-                <span className="inline-block px-4 py-1 bg-accent text-foreground font-medium rounded-full mb-4">
-                  Upcoming Event
-                </span>
-              )}
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
-                {event.title}
-              </h1>
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
+                {isUpcoming && <span className="px-4 py-1 bg-accent text-foreground font-medium rounded-full">Upcoming Event</span>}
+                {categoryInfo && (
+                  <span className={categoryInfo.bg + " inline-flex items-center gap-2 px-3 py-1 rounded-full"}>
+                    <categoryInfo.icon className={categoryInfo.color + " w-4 h-4"} />
+                    <span className={categoryInfo.color + " text-sm font-medium"}>{categoryInfo.label}</span>
+                  </span>
+                )}
+              </div>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">{event.title}</h1>
               <div className="flex flex-wrap gap-6 text-white/90">
-                <span className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  {formatDate(eventDate)}
-                </span>
-                <span className="flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  {event.time}
-                </span>
-                <span className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  {event.venue}
-                </span>
+                <span className="flex items-center gap-2"><Calendar className="w-5 h-5" />{formatDate(event.date)}</span>
+                <span className="flex items-center gap-2"><Clock className="w-5 h-5" />{event.time}</span>
+                <span className="flex items-center gap-2"><MapPin className="w-5 h-5" />{event.venue}</span>
               </div>
             </div>
 
             {event.imageUrl && (
               <div className="relative">
-                <img
-                  src={event.imageUrl}
-                  alt={event.title}
-                  className="w-full rounded-2xl shadow-2xl"
-                />
+                <img src={event.imageUrl} alt={event.title} className="w-full rounded-2xl shadow-2xl" />
               </div>
             )}
           </div>
@@ -171,103 +242,96 @@ export default function EventDetailPage() {
       <section className="section-padding bg-background">
         <div className="container-custom">
           <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* About */}
               <div className="card p-8">
                 <h2 className="text-2xl font-bold text-foreground mb-4">About This Event</h2>
-                <p className="text-muted whitespace-pre-wrap leading-relaxed">
-                  {event.description}
-                </p>
+                <p className="text-muted whitespace-pre-wrap leading-relaxed">{event.description}</p>
               </div>
+
+              {/* Event Details - Dynamic Fields */}
+              {event.fields && event.fields.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card p-8">
+                  <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
+                    {event.category === "competition" && <Trophy className="w-6 h-6 text-yellow-600" />}
+                    {event.category === "guest_lecture" && <Mic className="w-6 h-6 text-blue-600" />}
+                    {event.category === "workshop" && <GraduationCap className="w-6 h-6 text-green-600" />}
+                    Event Details
+                  </h2>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {event.fields.map(renderField)}
+                  </div>
+                </motion.div>
+              )}
             </div>
 
+            {/* Sidebar */}
             <div className="space-y-6">
+              {/* Event Details Card */}
               <div className="card p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-4">Event Details</h3>
                 
                 <div className="space-y-4 mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted">Date</p>
-                      <p className="font-medium text-foreground">
-                        {formatShortDate(eventDate)}
-                      </p>
-                    </div>
+                    <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center"><Calendar className="w-5 h-5 text-primary" /></div>
+                    <div><p className="text-sm text-muted">Date</p><p className="font-medium text-foreground">{formatShortDate(event.date)}</p></div>
                   </div>
-
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center">
-                      <Clock className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted">Time</p>
-                      <p className="font-medium text-foreground">{event.time}</p>
-                    </div>
+                    <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center"><Clock className="w-5 h-5 text-primary" /></div>
+                    <div><p className="text-sm text-muted">Time</p><p className="font-medium text-foreground">{event.time}</p></div>
                   </div>
-
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted">Venue</p>
-                      <p className="font-medium text-foreground">{event.venue}</p>
-                    </div>
+                    <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center"><MapPin className="w-5 h-5 text-primary" /></div>
+                    <div><p className="text-sm text-muted">Venue</p><p className="font-medium text-foreground">{event.venue}</p></div>
                   </div>
-
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center">
-                      <Users className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted">Registered</p>
-                      <p className="font-medium text-foreground">{event.registeredUsers?.length || 0} participants</p>
-                    </div>
+                    <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-primary" /></div>
+                    <div><p className="text-sm text-muted">Registered</p><p className="font-medium text-foreground">{event.registeredUsers?.length || 0} participants</p></div>
                   </div>
                 </div>
 
-                {isUpcoming && (
-                  <>
-                    {registered ? (
-                      <button
-                        onClick={handleUnregister}
-                        disabled={registering}
-                        className="w-full btn-secondary flex items-center justify-center gap-2"
-                      >
-                        <Check className="w-5 h-5" />
-                        {registering ? "Processing..." : "Registered - Click to Unregister"}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleRegister}
-                        disabled={registering}
-                        className="w-full btn-primary flex items-center justify-center gap-2"
-                      >
-                        {registering ? "Registering..." : "Register Now"}
-                        <ArrowRight className="w-5 h-5" />
-                      </button>
-                    )}
-                  </>
+                {/* Deadline Warning */}
+                {event.showDeadline && event.registrationDeadline && (
+                  <div className={cn("p-4 rounded-xl mb-4 flex items-center gap-3", !registrationOpen ? "bg-red-50 border border-red-200" : "bg-orange-50 border border-orange-200")}>
+                    <Clock className={cn("w-5 h-5 shrink-0", !registrationOpen ? "text-red-600" : "text-orange-600")} />
+                    <div>
+                      <p className="text-sm font-medium">{!registrationOpen ? "Registration Closed" : "Register Before"}</p>
+                      <p className={cn("font-semibold", !registrationOpen ? "text-red-600" : "text-orange-700")}>
+                        {formatShortDate(event.registrationDeadline)}
+                      </p>
+                    </div>
+                  </div>
                 )}
 
-                {!isUpcoming && (
-                  <p className="text-center text-muted text-sm">This event has already passed</p>
+                {/* Registration Button */}
+                {registrationOpen ? (
+                  event.registerLink ? (
+                    <button onClick={handleRegister} className="w-full btn-primary flex items-center justify-center gap-2">
+                      Register Now <ArrowRight className="w-5 h-5" />
+                    </button>
+                  ) : registered ? (
+                    <button onClick={handleUnregister} className="w-full btn-secondary flex items-center justify-center gap-2">
+                      <Check className="w-5 h-5" /> Registered - Click to Unregister
+                    </button>
+                  ) : (
+                    <button onClick={handleInternalRegister} className="w-full btn-primary flex items-center justify-center gap-2">
+                      Register Now <ArrowRight className="w-5 h-5" />
+                    </button>
+                  )
+                ) : (
+                  <div className="flex items-center justify-center gap-2 p-4 bg-gray-100 rounded-lg text-muted">
+                    <AlertCircle className="w-5 h-5" />
+                    <span>{!isUpcoming ? "Event has ended" : "Registration Closed"}</span>
+                  </div>
                 )}
               </div>
 
+              {/* Share Card */}
               <div className="card p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-4">Share This Event</h3>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    alert("Link copied to clipboard!");
-                  }}
-                  className="w-full flex items-center justify-center gap-2 border border-border rounded-lg py-3 hover:bg-background transition-colors"
-                >
-                  <Share2 className="w-5 h-5" />
-                  Copy Link
+                <button onClick={() => { navigator.clipboard.writeText(window.location.href); alert("Link copied!"); }} className="w-full flex items-center justify-center gap-2 border border-border rounded-lg py-3 hover:bg-background transition-colors">
+                  <Share2 className="w-5 h-5" /> Copy Link
                 </button>
               </div>
             </div>
@@ -278,4 +342,8 @@ export default function EventDetailPage() {
       <Footer />
     </>
   );
+}
+
+function cn(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(" ");
 }

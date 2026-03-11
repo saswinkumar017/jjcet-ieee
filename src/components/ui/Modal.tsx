@@ -24,9 +24,9 @@ const modalSizes = {
   xl: "max-w-xl",
   "2xl": "max-w-2xl",
   "3xl": "max-w-3xl",
-  "4xl": "max-w-4xl",
-  "5xl": "max-w-5xl",
-  full: "max-w-[90vw]",
+  "4xl": "max-w-4xl max-w-[90vw]",
+  "5xl": "max-w-5xl max-w-[90vw]",
+  full: "max-w-[95vw]",
 };
 
 export function Modal({
@@ -50,18 +50,20 @@ export function Modal({
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
     }
 
     return () => {
       document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
     };
   }, [isOpen, onClose, closeOnEscape]);
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-hidden">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -79,7 +81,7 @@ export function Modal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
             className={cn(
-              "relative w-full bg-surface rounded-2xl shadow-xl",
+              "relative w-full bg-surface rounded-2xl shadow-xl overflow-x-hidden",
               modalSizes[size],
               "max-h-[90vh] overflow-hidden flex flex-col"
             )}
@@ -107,7 +109,7 @@ export function Modal({
             )}
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
               {children}
             </div>
           </motion.div>

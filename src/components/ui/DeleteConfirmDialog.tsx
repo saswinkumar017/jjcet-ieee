@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,20 @@ export function DeleteConfirmDialog({
   itemName,
 }: DeleteConfirmDialogProps) {
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [isOpen]);
 
   const handleDelete = async () => {
     setDeleting(true);

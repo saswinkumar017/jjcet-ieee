@@ -28,9 +28,10 @@ export default function NotificationDropdown({ onClose, onUnreadCountChange }: N
   }, [user]);
 
   const loadNotifications = async () => {
+    if (!user?.uid) return;
     setError(null);
     try {
-      const data = await notificationsService.getAll(0, 5);
+      const data = await notificationsService.getAll(user.uid, 0, 5);
       setNotifications(data.notifications);
       setUnreadCount(data.unreadCount);
     } catch (err) {
@@ -42,13 +43,14 @@ export default function NotificationDropdown({ onClose, onUnreadCountChange }: N
   };
 
   const handleMarkAsRead = async (id: string) => {
+    if (!user?.uid) return;
     try {
-      await notificationsService.markAsRead(id);
+      await notificationsService.markAsRead(user.uid, id);
       const newCount = Math.max(0, unreadCount - 1);
       setUnreadCount(newCount);
       onUnreadCountChange?.(newCount);
       setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, isRead: true } : n)
+        prev.map(n => n.id === id ? { ...n, isRead: true, readBy: [...(n.readBy || []), user.uid] } : n)
       );
     } catch (error) {
       console.error("Failed to mark as read:", error);
@@ -56,14 +58,50 @@ export default function NotificationDropdown({ onClose, onUnreadCountChange }: N
   };
 
   const handleMarkAllAsRead = async () => {
+    if (!user?.uid) return;
     try {
-      await notificationsService.markAllAsRead();
+      await notificationsService.markAllAsRead(user.uid);
       setUnreadCount(0);
       onUnreadCountChange?.(0);
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true, readBy: [...(n.readBy || []), user.uid!] })));
     } catch (error) {
       console.error("Failed to mark all as read:", error);
     }
+  };
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    if (!user?.uid) return;
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await notificationsService.delete(user.uid, id);
+      const wasUnread = notifications.find(n => n.id === id && !n.isRead && !n.readBy?.includes(user.uid));
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      if (wasUnread) {
+        const newCount = Math.max(0, unreadCount - 1);
+        setUnreadCount(newCount);
+        onUnreadCountChange?.(newCount);
+      }
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!user?.uid) return;
+    try {
+      await notificationsService.deleteAll(user.uid);
+      setNotifications([]);
+      setUnreadCount(0);
+      onUnreadCountChange?.(0);
+    } catch (error) {
+      console.error("Failed to clear all notifications:", error);
+    }
+  };
+
+  const isNotificationRead = (notification: Notification) => {
+    if (!user?.uid) return notification.isRead;
+    return notification.isRead || notification.readBy?.includes(user.uid);
   };
 
   const getTypeIcon = (type: string) => {
@@ -102,14 +140,24 @@ export default function NotificationDropdown({ onClose, onUnreadCountChange }: N
     >
       <div className="px-5 py-4 bg-gradient-to-r from-violet-50 via-purple-50 to-indigo-50 border-b border-gray-100 flex items-center justify-between">
         <h3 className="font-bold text-gray-800">Notifications</h3>
-        {unreadCount > 0 && (
-          <button 
-            onClick={handleMarkAllAsRead}
-            className="text-xs text-primary hover:text-primary-dark font-medium"
-          >
-            Mark all read
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {notifications.length > 0 && (
+            <button 
+              onClick={handleClearAll}
+              className="text-xs text-red-500 hover:text-red-700 font-medium"
+            >
+              Clear all
+            </button>
+          )}
+          {unreadCount > 0 && (
+            <button 
+              onClick={handleMarkAllAsRead}
+              className="text-xs text-primary hover:text-primary-dark font-medium"
+            >
+              Mark all read
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="max-h-80 overflow-y-auto">
@@ -120,12 +168,14 @@ export default function NotificationDropdown({ onClose, onUnreadCountChange }: N
         ) : notifications.length === 0 ? (
           <div className="p-4 text-center text-gray-500">No notifications yet</div>
         ) : (
-          notifications.map((notification) => (
+          notifications.map((notification) => {
+              const isRead = isNotificationRead(notification);
+              return (
             <div
               key={notification.id}
               className={cn(
                 "px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors",
-                !notification.isRead && "bg-violet-50/50"
+                !isRead && "bg-violet-50/50"
               )}
             >
               <div className="flex items-start gap-3">
@@ -135,7 +185,7 @@ export default function NotificationDropdown({ onClose, onUnreadCountChange }: N
                     href={notification.referenceUrl}
                     className="block"
                     onClick={() => {
-                      if (!notification.isRead) {
+                      if (!isRead) {
                         handleMarkAsRead(notification.id);
                       }
                       onClose?.();
@@ -143,7 +193,7 @@ export default function NotificationDropdown({ onClose, onUnreadCountChange }: N
                   >
                     <p className={cn(
                       "text-sm font-medium truncate",
-                      !notification.isRead && "text-gray-900"
+                      !isRead && "text-gray-900"
                     )}>
                       {notification.title}
                     </p>
@@ -151,12 +201,20 @@ export default function NotificationDropdown({ onClose, onUnreadCountChange }: N
                     <p className="text-xs text-gray-400 mt-1">{formatTime(notification.createdAt)}</p>
                   </Link>
                 </div>
-                {!notification.isRead && (
+                <button
+                  onClick={(e) => handleDelete(notification.id, e)}
+                  className="p-1.5 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                  title="Delete notification"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                {!isRead && (
                   <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-2" />
                 )}
               </div>
             </div>
-          ))
+              );
+            })
         )}
       </div>
 
