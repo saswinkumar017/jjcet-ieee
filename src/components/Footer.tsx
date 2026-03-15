@@ -113,9 +113,11 @@ export default function Footer() {
             <p className="text-gray-500 text-sm">
               © 2026 JJCET IEEE Student Branch. All rights reserved.
             </p>
-            <div className="flex gap-6 text-sm text-gray-500">
+            <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-gray-500">
               <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+              <span className="hidden md:inline">|</span>
+              <span>Designed & Developed by <a href="https://github.com/saswinkumar017" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors font-medium">Aswin Kumar S</a></span>
             </div>
           </div>
         </div>

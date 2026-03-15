@@ -11,7 +11,7 @@ import { TeamMember, DriveImage } from "@/types";
 import { FadeIn } from "@/components/ui/animations";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { Input, Select } from "@/components/ui/Input";
+import { Input, Select, Textarea } from "@/components/ui/Input";
 import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { SuccessToast } from "@/components/ui/SuccessToast";
 
@@ -21,16 +21,21 @@ interface MemberCardProps {
   isAdmin: boolean;
   onEdit: (member: TeamMember) => void;
   onDelete: (id: string, name: string) => void;
+  isLarge?: boolean;
 }
 
-function MemberCard({ member, index, isAdmin, onEdit, onDelete }: MemberCardProps) {
+function MemberCard({ member, index, isAdmin, onEdit, onDelete, isLarge }: MemberCardProps) {
+  const [showDescription, setShowDescription] = useState(false);
+  const isFaculty = member.memberType === "faculty";
+  const hasDescription = isFaculty && member.description;
+
   return (
     <FadeIn key={member.id} delay={index * 0.05}>
-      <motion.div whileHover={{ y: -10 }}
+      <motion.div whileHover={{ y: -5 }}
         className="group bg-surface rounded-2xl border border-border overflow-hidden hover:border-primary/30 hover:shadow-xl transition-all"
       >
-        <div className="relative">
-          <div className="aspect-[4/5] overflow-hidden">
+        <div className="relative" onClick={() => hasDescription && setShowDescription(!showDescription)}>
+          <div className={`aspect-[3/4] ${isLarge ? 'w-64 md:w-72' : 'w-32 sm:w-36 md:w-40'} flex-shrink-0`}>
             {member.photoUrl ? (
               <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
             ) : (
@@ -40,17 +45,22 @@ function MemberCard({ member, index, isAdmin, onEdit, onDelete }: MemberCardProp
             )}
           </div>
           {isAdmin && (
-            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-              <button onClick={() => onEdit(member)} className="p-2 bg-white shadow-lg rounded-lg hover:bg-primary-light">
+            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
+              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(member); }} className="p-2 bg-white shadow-lg rounded-lg hover:bg-primary-light">
                 <Edit className="w-4 h-4" />
               </button>
-              <button onClick={() => onDelete(member.id, member.name)} className="p-2 bg-error text-white shadow-lg rounded-lg">
+              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(member.id, member.name); }} className="p-2 bg-error text-white shadow-lg rounded-lg">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
           )}
+          {hasDescription && (
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none lg:pointer-events-auto">
+              <p className="text-white text-sm text-center leading-relaxed">{member.description}</p>
+            </div>
+          )}
         </div>
-        <div className="p-3 text-center">
+        <div className="p-4 text-center">
           <h3 className="font-bold text-sm text-foreground">{member.name}</h3>
           <p className="text-primary font-medium text-xs mb-2">{member.role}</p>
           <div className="flex justify-center gap-1">
@@ -76,6 +86,7 @@ export default function MembersPage() {
     linkedin: "",
     order: 0,
     memberType: "student" as "faculty" | "student",
+    description: "",
   });
   const [deleteItem, setDeleteItem] = useState<{id: string; name: string} | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -181,7 +192,7 @@ export default function MembersPage() {
     setEditingMember(null);
     const facultyCount = members.filter(m => m.memberType === "faculty").length;
     const studentCount = members.filter(m => m.memberType !== "faculty").length;
-    setFormData({ name: "", role: "", email: "", photoUrl: "", linkedin: "", order: studentCount + 1, memberType: "student" });
+    setFormData({ name: "", role: "", email: "", photoUrl: "", linkedin: "", order: studentCount + 1, memberType: "student", description: "" });
     setShowModal(true);
   };
 
@@ -195,6 +206,7 @@ export default function MembersPage() {
       linkedin: member.linkedin || "",
       order: member.order,
       memberType: member.memberType || "student",
+      description: member.description || "",
     });
     setShowModal(true);
   };
@@ -256,7 +268,7 @@ export default function MembersPage() {
                     <div className="w-1 h-8 bg-primary rounded-full"></div>
                     <h2 className="text-2xl font-bold text-foreground">Faculty Members</h2>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                  <div className="flex flex-col md:flex-row md:flex-wrap gap-24 justify-center items-center md:items-start">
                     {facultyMembers.map((member, index) => (
                       <MemberCard 
                         key={member.id} 
@@ -265,6 +277,7 @@ export default function MembersPage() {
                         isAdmin={user?.role === "admin"}
                         onEdit={openEdit}
                         onDelete={handleDeleteClick}
+                        isLarge
                       />
                     ))}
                   </div>
@@ -276,7 +289,7 @@ export default function MembersPage() {
                     <div className="w-1 h-8 bg-accent rounded-full"></div>
                     <h2 className="text-2xl font-bold text-foreground">Student Members</h2>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
                     {studentMembers.map((member, index) => (
                       <MemberCard 
                         key={member.id} 
@@ -343,6 +356,15 @@ export default function MembersPage() {
               ]}
             />
           </div>
+          {formData.memberType === "faculty" && (
+            <Textarea 
+              label="Description (About)" 
+              placeholder="Enter a short description about the faculty member..." 
+              value={formData.description} 
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
+              rows={3} 
+            />
+          )}
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="ghost" onClick={closeModal} className="flex-1">Cancel</Button>
             <Button type="submit" variant="primary" className="flex-1">{editingMember ? "Update" : "Add"}</Button>

@@ -99,7 +99,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const eventsData = await eventsService.getUpcoming();
+        const eventsData = await eventsService.getAll();
         setEvents(eventsData.slice(0, 3));
 
 

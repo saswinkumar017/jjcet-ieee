@@ -5,13 +5,14 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { 
   CalendarDays, Plus, Edit, Trash2, ArrowRight, Clock, MapPin, 
-  X, Users, Trophy, Mic, GraduationCap
+  X, Users, Trophy, Mic, GraduationCap, Folder
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { eventsService } from "@/client/services";
 import { useAuth } from "@/lib/AuthContext";
 import { Event, EventCategory, EventField } from "@/types";
+import { getCollections, DriveFolder } from "@/lib/drive";
 import { FadeIn } from "@/components/ui/animations";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -42,6 +43,9 @@ interface EventFormData {
   registerLink: string;
   showDeadline: boolean;
   registrationDeadline: string;
+  // Gallery
+  galleryFolderId: string;
+  galleryFolderName: string;
 }
 
 const getInitialFields = (category: EventCategory): FormField[] => {
@@ -72,6 +76,8 @@ const initialFormData: EventFormData = {
   registerLink: "",
   showDeadline: false,
   registrationDeadline: "",
+  galleryFolderId: "",
+  galleryFolderName: "",
 };
 
 export default function EventsPage() {
@@ -91,6 +97,7 @@ export default function EventsPage() {
   const [showDriveModal, setShowDriveModal] = useState(false);
   const [driveImages, setDriveImages] = useState<any[]>([]);
   const [loadingDriveImages, setLoadingDriveImages] = useState(false);
+  const [galleryFolders, setGalleryFolders] = useState<DriveFolder[]>([]);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -103,7 +110,18 @@ export default function EventsPage() {
         setLoading(false);
       }
     };
+
+    const fetchGalleryFolders = async () => {
+      try {
+        const folders = await getCollections();
+        setGalleryFolders(folders);
+      } catch (error) {
+        console.error("Failed to fetch gallery folders:", error);
+      }
+    };
+
     fetchEvents();
+    fetchGalleryFolders();
   }, []);
 
   const isEventUpcoming = (eventDate: Date | string, eventTime: string) => {
@@ -204,6 +222,8 @@ export default function EventsPage() {
         registerLink: formData.registerLink,
         showDeadline: formData.showDeadline,
         registrationDeadline: formData.registrationDeadline || null,
+        galleryFolderId: formData.galleryFolderId || null,
+        galleryFolderName: formData.galleryFolderName || null,
       };
       
       if (editingEvent) {
@@ -272,6 +292,8 @@ export default function EventsPage() {
       registerLink: event.registerLink || "",
       showDeadline: event.showDeadline ?? false,
       registrationDeadline: event.registrationDeadline ? new Date(event.registrationDeadline).toISOString().split("T")[0] : "",
+      galleryFolderId: event.galleryFolderId || "",
+      galleryFolderName: event.galleryFolderName || "",
     });
     setPreviewUrl(event.imageUrl || "");
     setShowModal(true);
@@ -365,7 +387,7 @@ export default function EventsPage() {
                     <Link href={`/events/${event.id}`}>
                       <div className="aspect-video relative overflow-hidden group">
                         {event.imageUrl ? (
-                          <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
+                          <img src={event.imageUrl} alt={event.title} className="w-full h-full object-contain bg-muted/20" />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
                             <CalendarDays className="w-10 h-10 text-primary" />
@@ -437,6 +459,36 @@ export default function EventsPage() {
               )}
             </div>
           </div>
+
+          {/* Section: Link Gallery Album */}
+          {galleryFolders.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold text-foreground border-b pb-2 mb-4 flex items-center gap-2">
+                <Folder className="w-5 h-5" /> Link Gallery Album
+              </h3>
+              <p className="text-sm text-muted mb-4">Select a gallery album to display on the event page.</p>
+              <select
+                value={formData.galleryFolderId}
+                onChange={(e) => {
+                  const selectedFolder = galleryFolders.find(f => f.id === e.target.value);
+                  setFormData({ 
+                    ...formData, 
+                    galleryFolderId: e.target.value,
+                    galleryFolderName: selectedFolder?.name || ""
+                  });
+                }}
+                className="w-full p-3 rounded-xl border border-border bg-surface text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              >
+                <option value="">No album linked</option>
+                {galleryFolders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>{folder.name}</option>
+                ))}
+              </select>
+              {formData.galleryFolderId && (
+                <p className="text-sm text-green-600 mt-2">✓ Linked: {formData.galleryFolderName}</p>
+              )}
+            </div>
+          )}
 
           {/* Section 2: Event Category */}
           <div>

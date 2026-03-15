@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -108,6 +109,8 @@ function CollectionCard({ collection, index, onClick }: { collection: DriveFolde
 }
 
 export default function GalleryPage() {
+  const searchParams = useSearchParams();
+  const folderId = searchParams.get('folder');
   const [collections, setCollections] = useState<DriveFolder[]>([]);
   const [images, setImages] = useState<DriveImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,12 +124,19 @@ export default function GalleryPage() {
   useEffect(() => {
     getCollections().then(cols => {
       setCollections(cols);
+      // If folder parameter exists, find and select that folder
+      if (folderId) {
+        const folder = cols.find(f => f.id === folderId);
+        if (folder) {
+          setSelectedCollection(folder);
+        }
+      }
       setLoading(false);
     }).catch(err => {
       console.error("Failed to fetch collections:", err);
       setLoading(false);
     });
-  }, []);
+  }, [folderId]);
 
   useEffect(() => {
     if (!selectedCollection) return;
@@ -220,11 +230,17 @@ export default function GalleryPage() {
               <motion.button
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                onClick={handleBackToCollections}
+                onClick={() => {
+                  if (folderId) {
+                    window.history.back();
+                  } else {
+                    handleBackToCollections();
+                  }
+                }}
                 className="flex items-center gap-2 text-purple-600 hover:text-purple-800 mb-6 md:mb-8 font-semibold bg-white px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all"
               >
                 <ArrowLeft className="w-5 h-5" />
-                Back to Albums
+                {folderId ? "Back" : "Back to Albums"}
               </motion.button>
 
               {loadingImages ? (

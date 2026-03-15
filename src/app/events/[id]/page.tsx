@@ -9,9 +9,10 @@ import { eventsService } from "@/client/services";
 import { useAuth } from "@/lib/AuthContext";
 import { Event } from "@/types";
 import { motion } from "framer-motion";
+import { getGalleryImages, getDriveThumbnailUrl } from "@/lib/drive";
 import { 
   Calendar, Clock, MapPin, Users, ArrowLeft, ArrowRight, Share2, Check, 
-  Trophy, Mic, GraduationCap, AlertCircle
+  Trophy, Mic, GraduationCap, AlertCircle, Images, X
 } from "lucide-react";
 import { getCategoryInfo, getFieldIcon } from "@/lib/eventConfig";
 
@@ -192,7 +193,7 @@ export default function EventDetailPage() {
             <Link href="/events" className="btn-primary">Back to Events</Link>
           </div>
         </div>
-        <Footer />
+      )}
       </>
     );
   }
@@ -231,7 +232,7 @@ export default function EventDetailPage() {
 
             {event.imageUrl && (
               <div className="relative">
-                <img src={event.imageUrl} alt={event.title} className="w-full rounded-2xl shadow-2xl" />
+                <img src={event.imageUrl} alt={event.title} className="w-full max-h-48 md:max-h-64 lg:max-h-80 xl:max-h-96 object-contain rounded-2xl shadow-2xl bg-muted/20" />
               </div>
             )}
           </div>
@@ -285,10 +286,11 @@ export default function EventDetailPage() {
                     <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center"><MapPin className="w-5 h-5 text-primary" /></div>
                     <div><p className="text-sm text-muted">Venue</p><p className="font-medium text-foreground">{event.venue}</p></div>
                   </div>
-                  <div className="flex items-center gap-3">
+                 
+                  {/*<div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-primary" /></div>
                     <div><p className="text-sm text-muted">Registered</p><p className="font-medium text-foreground">{event.registeredUsers?.length || 0} participants</p></div>
-                  </div>
+                  </div>*/}
                 </div>
 
                 {/* Deadline Warning */}
@@ -338,6 +340,28 @@ export default function EventDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* Gallery Section - Above Footer */}
+      {event.galleryFolderId && event.galleryFolderId.trim() !== "" && (
+        <section className="py-12 bg-background">
+          <div className="container-custom">
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <Images className="w-5 h-5 text-violet-500" /> {event.galleryFolderName || "Event Gallery"}
+                </h3>
+                <Link 
+                  href={`/gallery?folder=${event.galleryFolderId}`}
+                  className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors font-medium"
+                >
+                  View Album →
+                </Link>
+              </div>
+              <p className="text-muted">Click to view all photos from this event.</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       <Footer />
     </>

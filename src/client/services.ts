@@ -35,6 +35,8 @@ function mapEventFromFirestore(data: any): Event {
     registerLink: data.registerLink || '',
     showDeadline: data.showDeadline ?? false,
     registrationDeadline: data.registrationDeadline ? new Date(data.registrationDeadline) : undefined,
+    galleryFolderId: data.galleryFolderId || '',
+    galleryFolderName: data.galleryFolderName || '',
   };
 }
 
@@ -60,6 +62,7 @@ function mapMemberFromFirestore(data: any): TeamMember {
     linkedin: data.linkedin || '',
     order: data.order || 0,
     memberType: data.memberType || 'student',
+    description: data.description || '',
   };
 }
 

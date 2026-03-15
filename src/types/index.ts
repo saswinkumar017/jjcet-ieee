@@ -41,6 +41,9 @@ export interface Event {
   registerLink: string;
   showDeadline: boolean;
   registrationDeadline?: Date;
+  // Gallery album link
+  galleryFolderId?: string;
+  galleryFolderName?: string;
 }
 
 export interface News {
@@ -62,6 +65,7 @@ export interface TeamMember {
   linkedin?: string;
   order: number;
   memberType?: "faculty" | "student";
+  description?: string;
 }
 
 export interface GalleryImage {
