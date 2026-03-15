@@ -193,7 +193,7 @@ export default function EventDetailPage() {
             <Link href="/events" className="btn-primary">Back to Events</Link>
           </div>
         </div>
-      )}
+      
       </>
     );
   }
