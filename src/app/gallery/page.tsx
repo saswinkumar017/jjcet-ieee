@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
@@ -78,22 +78,11 @@ function CollectionCard({ collection, index, onClick }: { collection: DriveFolde
         )}
         
         {/* Overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        {/* Image count badge */}
-        {imageCount > 0 && (
-          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg">
-            <Camera className="w-3.5 h-3.5 text-purple-600" />
-            <span className="text-xs font-semibold text-purple-700">{imageCount}</span>
-          </div>
-        )}
-        
-        {/* View button on hover */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-          <div className="bg-white/95 backdrop-blur-sm px-5 py-2.5 rounded-full shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-            <span className="text-purple-700 font-semibold text-sm flex items-center gap-2">
-              <Images className="w-4 h-4" /> View Album
-            </span>
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+          <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-3">
+              <Images className="w-6 h-6 text-purple-600" />
+            </div>
           </div>
         </div>
       </div>
@@ -108,7 +97,7 @@ function CollectionCard({ collection, index, onClick }: { collection: DriveFolde
   );
 }
 
-export default function GalleryPage() {
+function GalleryContent() {
   const searchParams = useSearchParams();
   const folderId = searchParams.get('folder');
   const [collections, setCollections] = useState<DriveFolder[]>([]);
@@ -367,5 +356,17 @@ export default function GalleryPage() {
 
       <Footer />
     </>
+  );
+}
+
+export default function GalleryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+      </div>
+    }>
+      <GalleryContent />
+    </Suspense>
   );
 }
