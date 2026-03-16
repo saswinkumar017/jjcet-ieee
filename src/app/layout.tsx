@@ -55,6 +55,7 @@ export default function RootLayout({
 
       <body className="bg-background text-foreground antialiased">
 
+        {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-SWBBLHQS0S"
           strategy="afterInteractive"
