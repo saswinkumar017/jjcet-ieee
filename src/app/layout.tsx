@@ -37,19 +37,23 @@ import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "JJCET IEEE Student Branch",
-  description: "J.J. College of Engineering and Technology (Autonomous) IEEE Student Branch - IEEE Chapter Website",
+  description:
+    "J.J. College of Engineering and Technology (Autonomous) IEEE Student Branch - IEEE Chapter Website",
   keywords: ["IEEE", "JJCET", "Engineering", "Student Branch", "Technology"],
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
+      </head>
+
+      <body className="bg-background text-foreground antialiased">
 
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-SWBBLHQS0S"
@@ -65,14 +69,12 @@ export default function RootLayout({
           `}
         </Script>
 
-      </head>
-
-      <body className="bg-background text-foreground antialiased">
         <ThemeProvider>
           <AuthProvider>
             {children}
           </AuthProvider>
         </ThemeProvider>
+
       </body>
     </html>
   );
