@@ -151,7 +151,7 @@ export default function UserListPage() {
       <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white py-10 md:py-14 overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `radial-gradient(circle at 25% 25%, rgba(255,255,255,0.3) 1px, transparent 1px)`, backgroundSize: '50px 50px' }} />
         <div className="container-custom relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full w-fit mb-2">
                 <Shield className="w-4 h-4 text-accent" />
@@ -192,7 +192,7 @@ export default function UserListPage() {
       <section className="py-8 md:py-12 bg-slate-50">
         <div className="container-custom">
           {/* Search & Filter */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
@@ -233,7 +233,7 @@ export default function UserListPage() {
 
           {/* Users Grid */}
           {loading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1,2,3,4,5,6].map(i => (
                 <div key={i} className="bg-white rounded-xl p-5 border border-slate-200 animate-pulse">
                   <div className="flex items-center gap-4 mb-4">
@@ -244,7 +244,7 @@ export default function UserListPage() {
               ))}
             </div>
           ) : filteredUsers.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredUsers.map((user, index) => {
                 const badge = getUserBadge(user);
                 return (
@@ -292,7 +292,7 @@ export default function UserListPage() {
                       {/* Body */}
                       <div className="p-5">
                         {/* Details Grid */}
-                        <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                           {user.branch && (
                             <div className="flex items-center gap-2.5 p-2.5 bg-slate-50 rounded-lg">
                               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -341,7 +341,7 @@ export default function UserListPage() {
 
                         {/* Action Buttons */}
                         {user.uid !== currentUser.uid && currentUser.role === "admin" && (
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             {/* Member Type Toggle */}
                             <button
                               onClick={() => setMemberTypeChange({ id: user.uid, name: user.displayName || user.email || 'Unknown User', currentType: user.memberType || 'Student' })}
