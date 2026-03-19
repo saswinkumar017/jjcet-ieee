@@ -14,7 +14,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 
-import { Event, News, TeamMember, GalleryImage, Announcement, Notification } from '@/types';
+import { Event, News, TeamMember, GalleryImage, Announcement, Notification, User } from '@/types';
 
 // Simple mapping functions
 function mapEventFromFirestore(data: any): Event {
@@ -536,5 +536,44 @@ export const driveService = {
       throw new Error('Failed to fetch images');
     }
     return await response.json();
+  },
+};
+
+export const usersService = {
+  async getAll(): Promise<User[]> {
+    const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => {
+      const data = d.data();
+      return {
+        uid: d.id,
+        email: data.email || '',
+        displayName: data.displayName || '',
+        role: data.role || 'user',
+        phone: data.phone || '',
+        memberType: data.memberType || 'Student',
+        branch: data.branch || '',
+        year: data.year || '',
+        ieeeMemberId: data.ieeeMemberId || '',
+        createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+        emailVerified: data.emailVerified || false,
+      } as User;
+    });
+  },
+
+  async updateRole(uid: string, role: 'admin' | 'user'): Promise<void> {
+    await updateDoc(doc(db, 'users', uid), { role });
+  },
+
+  async updateMemberType(uid: string, memberType: 'Faculty' | 'Student'): Promise<void> {
+    const updateData: Record<string, any> = { memberType };
+    if (memberType === 'Faculty') {
+      updateData.year = '';
+    }
+    await updateDoc(doc(db, 'users', uid), updateData);
+  },
+
+  async delete(uid: string): Promise<void> {
+    await deleteDoc(doc(db, 'users', uid));
   },
 };

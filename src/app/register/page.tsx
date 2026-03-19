@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
 import { authService, getAuthErrorMessage } from "@/client/auth";
-import { Mail, Lock, User, Phone, Eye, EyeOff, GraduationCap, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
+import { Mail, Lock, User, Phone, Eye, EyeOff, GraduationCap, ArrowLeft, CheckCircle, AlertCircle, Users } from "lucide-react";
 import { motion } from "framer-motion";
 
 const branches = [
@@ -22,6 +22,9 @@ const branches = [
 
 const years = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 
+const memberTypes = ["Student", "Faculty"] as const;
+type MemberType = typeof memberTypes[number];
+
 export default function RegisterPage() {
   const { register } = useAuth();
   const [step, setStep] = useState<"form" | "success">("form");
@@ -29,6 +32,7 @@ export default function RegisterPage() {
     displayName: "",
     email: "",
     phone: "",
+    memberType: "Student" as MemberType,
     branch: "",
     year: "",
     ieeeMemberId: "",
@@ -62,9 +66,10 @@ export default function RegisterPage() {
     try {
       await register(formData.email, formData.password, formData.displayName, {
         phone: formData.phone,
-        branch: formData.branch,
-        year: formData.year,
-        ieeeMemberId: formData.ieeeMemberId || undefined,
+        memberType: formData.memberType,
+        branch: formData.branch || "",
+        year: formData.memberType === "Student" ? formData.year : "",
+        ieeeMemberId: formData.ieeeMemberId || "",
       });
       // If we get here, email is already confirmed (rare case)
       setStep("success");
@@ -220,7 +225,7 @@ export default function RegisterPage() {
             </Link>
             <p className="text-lg font-semibold text-gray-700 mt-4">JJCET IEEE Student Branch</p>
             <h1 className="text-3xl font-bold text-gray-900 mt-2">
-              Register as Student Member
+              Register as Member
             </h1>
             <p className="text-gray-600 mt-2">
               Join JJCET IEEE Student Branch
@@ -235,6 +240,27 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Member Type *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {memberTypes.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, memberType: type })}
+                      className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 transition-all ${
+                        formData.memberType === type
+                          ? "border-purple-500 bg-purple-50 text-purple-700"
+                          : "border-gray-200 bg-white/80 text-gray-600 hover:border-purple-300"
+                      }`}
+                    >
+                      <Users className="w-5 h-5" />
+                      <span className="font-medium">{type}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
@@ -316,13 +342,15 @@ export default function RegisterPage() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Year *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Year {formData.memberType === "Student" && "*"}
+                  </label>
                   <select
                     name="year"
                     value={formData.year}
                     onChange={handleChange}
                     className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-white/80 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-                    required
+                    required={formData.memberType === "Student"}
                   >
                     <option value="">Select Year</option>
                     {years.map((year) => (

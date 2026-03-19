@@ -64,16 +64,6 @@ export const eventFields: FieldConfig[] = [
     placeholder: "Senior Engineer, Google",
     defaultEnabled: true
   },
-  { 
-    key: "topic", 
-    label: "Topic", 
-    type: "textarea", 
-    category: "guest_lecture",
-    icon: FileText,
-    placeholder: "Topic of the lecture...",
-    rows: 2,
-    defaultEnabled: true
-  },
   // Workshop fields
   { 
     key: "trainerName", 

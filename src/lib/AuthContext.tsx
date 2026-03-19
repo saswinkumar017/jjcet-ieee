@@ -14,6 +14,7 @@ interface AuthContextType {
     displayName: string,
     additionalData: {
       phone: string;
+      memberType: string;
       branch: string;
       year: string;
       ieeeMemberId?: string;
@@ -123,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       displayName: string,
       additionalData: {
         phone: string;
+        memberType: string;
         branch: string;
         year: string;
         ieeeMemberId?: string;

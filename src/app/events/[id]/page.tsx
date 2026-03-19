@@ -33,6 +33,8 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [registered, setRegistered] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<any[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -41,6 +43,19 @@ export default function EventDetailPage() {
         setEvent(data);
         if (data && user) {
           setRegistered(data.registeredUsers?.includes(user.uid));
+        }
+        if (data?.galleryFolderId && data.galleryFolderId.trim() !== "") {
+          setGalleryLoading(true);
+          try {
+            const response = await fetch(`/api/drive?action=images&folderId=${encodeURIComponent(data.galleryFolderId)}`);
+            if (response.ok) {
+              const imgs = await response.json();
+              setGalleryImages(imgs.slice(0, 12));
+            }
+          } catch (err) {
+            console.error("Failed to fetch gallery images:", err);
+          }
+          setGalleryLoading(false);
         }
       } catch (error) {
         console.error("Failed to fetch event", error);
@@ -357,7 +372,37 @@ export default function EventDetailPage() {
                   View Album →
                 </Link>
               </div>
-              <p className="text-muted">Click to view all photos from this event.</p>
+              {galleryLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-violet-500 border-t-transparent"></div>
+                </div>
+              ) : galleryImages.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                    {galleryImages.slice(0, 6).map((img: any) => (
+                      <div key={img.id} className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                        <img 
+                          src={img.thumbnailLink || `/api/drive?action=image&fileId=${img.id}`}
+                          alt={img.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {galleryImages.length > 6 && (
+                    <div className="mt-4 text-center">
+                      <Link 
+                        href={`/gallery?folder=${event.galleryFolderId}`}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors font-medium"
+                      >
+                        View All {galleryImages.length} Photos →
+                      </Link>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-muted text-center py-4">No images available</p>
+              )}
             </div>
           </div>
         </section>

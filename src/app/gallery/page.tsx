@@ -347,8 +347,7 @@ function GalleryContent() {
 
             {/* Image info */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center">
-              <p className="text-white font-medium text-lg">{images[selectedImage]?.name}</p>
-              <p className="text-white/60 text-sm mt-1">{selectedImage + 1} / {images.length}</p>
+              <p className="text-white/60 text-sm">{selectedImage + 1} / {images.length}</p>
             </div>
           </motion.div>
         )}

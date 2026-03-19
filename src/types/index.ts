@@ -1,4 +1,4 @@
-export type UserRole = "student" | "admin";
+export type UserRole = "student" | "admin" | "user";
 
 export interface User {
   uid: string;
@@ -6,6 +6,7 @@ export interface User {
   displayName: string;
   role: UserRole;
   phone: string;
+  memberType: string;
   branch: string;
   year: string;
   ieeeMemberId?: string;

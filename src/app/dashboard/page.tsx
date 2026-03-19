@@ -10,7 +10,7 @@ import Footer from "@/components/Footer";
 import { 
   Calendar, Bell, User, Settings, ChevronRight, Clock, 
   Award, Mail, Phone, BookOpen, Zap, 
-  Image, Newspaper, Users, LogOut, Edit3, CreditCard, Star
+  Image, Newspaper, Users, LogOut, Edit3, CreditCard, Star, Shield
 } from "lucide-react";
 import { eventsService } from "@/client/services";
 
@@ -130,6 +130,15 @@ export default function DashboardPage() {
               </div>
               
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-3">
+                {user.role === "admin" && (
+                  <Link href="/userlist" className="group bg-white rounded-xl p-3 md:p-4 shadow-sm border border-slate-100 hover:shadow-xl hover:border-purple-200 hover:-translate-y-1 transition-all">
+                    <div className="w-10 md:w-12 h-10 md:h-12 bg-purple-50 rounded-xl flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
+                      <Shield className="w-5 md:w-6 h-5 md:h-6 text-purple-600" />
+                    </div>
+                    <p className="text-xs md:text-sm font-medium text-slate-700">User List</p>
+                  </Link>
+                )}
+                
                 <Link href="/events" className="group bg-white rounded-xl p-3 md:p-4 shadow-sm border border-slate-100 hover:shadow-xl hover:border-blue-200 hover:-translate-y-1 transition-all">
                   <div className="w-10 md:w-12 h-10 md:h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
                     <Calendar className="w-5 md:w-6 h-5 md:h-6 text-blue-600" />
@@ -193,15 +202,17 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                      <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                        <Award className="w-5 h-5 text-purple-600" />
+                    {user.memberType !== 'Faculty' && (
+                      <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                        <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                          <Award className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-slate-500">Year</p>
+                          <p className="text-sm font-medium text-slate-800">{user.year || "Not set"}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-slate-500">Year</p>
-                        <p className="text-sm font-medium text-slate-800">{user.year || "Not set"}</p>
-                      </div>
-                    </div>
+                    )}
                     
                     <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                       <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">

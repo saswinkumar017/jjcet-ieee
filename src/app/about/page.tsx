@@ -228,48 +228,92 @@ export default function AboutPage() {
 
 
       {/* Team Preview */}
-      <section className="section-padding bg-backgroundbg-slate-900">
+      <section className="section-padding bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="container-custom">
           <FadeIn>
             <div className="text-center max-w-2xl mx-auto mb-12">
               <Badge variant="primary" className="mb-4">Leadership</Badge>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Meet Our Members
+                Meet Our Team
               </h2>
               <p className="text-muted">
-                Dedicated student leaders working towards our vision.
+                The driving force behind JJCET IEEE Student Branch
               </p>
             </div>
           </FadeIn>
 
           {!loading && members.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {members.slice(0, 4).map((member, index) => (
                 <FadeIn key={member.id} delay={index * 100}>
-                  <PremiumCard className="p-6 text-center group">
-                    <div className="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden ring-4 ring-primary/20 group-hover:ring-primary/40 transition-all">
-                      {member.photoUrl ? (
-                        <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center">
-                          <Users className="w-8 h-8 text-white" />
-                        </div>
-                      )}
+                  <div className="group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+                    {/* Gradient Header */}
+                    <div className="h-24 bg-gradient-to-br from-primary via-primary-hover to-[#003a5e] relative">
+                      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 1px, transparent 1px)`, backgroundSize: '20px 20px' }} />
                     </div>
-                    <h3 className="font-bold text-foreground">{member.name}</h3>
-                    <p className="text-primary text-sm font-medium">{member.role}</p>
-                  </PremiumCard>
+                    
+                    {/* Avatar */}
+                    <div className="relative -mt-12 px-6">
+                      <div className="relative">
+                        <div className="w-24 h-24 mx-auto rounded-full overflow-hidden ring-4 ring-white shadow-xl bg-white">
+                          {member.photoUrl ? (
+                            <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center">
+                              <Users className="w-10 h-10 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        {/* Member Type Badge */}
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-accent text-foreground text-xs font-bold rounded-full shadow-lg">
+                          {member.memberType || 'Student'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-5 pt-4 text-center">
+                      <h3 className="font-bold text-lg text-foreground mb-1 group-hover:text-primary transition-colors">
+                        {member.name}
+                      </h3>
+                      <p className="text-primary text-sm font-semibold mb-2">{member.role}</p>
+                      
+                      {/* Member Type Badge */}
+                      <div className="flex justify-center gap-1 mb-3">
+                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${member.memberType === 'faculty' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {member.memberType === 'faculty' ? 'Faculty' : 'Student'}
+                        </span>
+                      </div>
+
+                      {/* Contact Icons */}
+                      <div className="flex justify-center gap-3 mt-3">
+                        {member.email && (
+                          <a href={`mailto:${member.email}`} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-primary hover:text-white transition-colors">
+                            <Mail className="w-4 h-4" />
+                          </a>
+                        )}
+                        {member.linkedin && (
+                          <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-blue-600 hover:text-white transition-colors">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </FadeIn>
               ))}
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-muted">Members will appear here once added.</p>
+              <div className="w-20 h-20 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
+                <Users className="w-10 h-10 text-slate-300" />
+              </div>
+              <p className="text-muted">Team members will appear here once added.</p>
             </div>
           )}
 
-          <div className="text-center mt-8">
-            <Link href="/members" className="btn-primary inline-flex items-center gap-2">
+          <div className="text-center mt-10">
+            <Link href="/members" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary-hover transition-colors shadow-lg hover:shadow-xl">
               View All Members <Rocket className="w-4 h-4" />
             </Link>
           </div>

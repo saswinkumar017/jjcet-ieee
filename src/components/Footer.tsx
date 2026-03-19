@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Youtube, ArrowRight } from "lucide-react";
+import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Youtube, ArrowRight, Github } from "lucide-react";
 
 const quickLinks = [
   { name: "Home", href: "/" },
@@ -117,7 +117,7 @@ export default function Footer() {
               <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
               <span className="hidden md:inline">|</span>
-              <span>Designed & Developed by <a href="https://github.com/saswinkumar017" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors font-medium">Aswin Kumar S</a></span>
+              <span>Designed & Developed by <a href="https://github.com/saswinkumar017" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:text-primary/80 transition-colors font-medium"><Github className="w-4 h-4" />Aswin Kumar S</a></span>
             </div>
           </div>
         </div>

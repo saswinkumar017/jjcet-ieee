@@ -215,20 +215,22 @@ export default function SettingsPage() {
                           onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
                           placeholder="e.g., Computer Science"
                         />
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-2">Year</label>
-                          <select 
-                            value={formData.year}
-                            onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-surface text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                          >
-                            <option value="">Select Year</option>
-                            <option value="1st Year">1st Year</option>
-                            <option value="2nd Year">2nd Year</option>
-                            <option value="3rd Year">3rd Year</option>
-                            <option value="4th Year">4th Year</option>
-                          </select>
-                        </div>
+                        {user.memberType !== 'Faculty' && (
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-2">Year</label>
+                            <select 
+                              value={formData.year}
+                              onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                              className="w-full px-4 py-2.5 rounded-xl border border-border bg-surface text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                            >
+                              <option value="">Select Year</option>
+                              <option value="1st Year">1st Year</option>
+                              <option value="2nd Year">2nd Year</option>
+                              <option value="3rd Year">3rd Year</option>
+                              <option value="4th Year">4th Year</option>
+                            </select>
+                          </div>
+                        )}
                       </div>
 
                       <Input

@@ -14,19 +14,20 @@ import { User } from '@/types';
 
 // Map Firebase user to our User type
 function mapFirebaseUserToUser(firebaseUser: FirebaseUser, additionalData: any = {}): User {
-  return {
-    uid: firebaseUser.uid,
-    email: firebaseUser.email || '',
-    displayName: additionalData.displayName || firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-    role: additionalData.role || 'student',
-    phone: additionalData.phone || '',
-    branch: additionalData.branch || '',
-    year: additionalData.year || '',
-    ieeeMemberId: additionalData.ieeeMemberId || '',
-    createdAt: new Date(),
-    emailVerified: firebaseUser.emailVerified,
-  };
-}
+    return {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email || '',
+      displayName: additionalData.displayName || firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+      role: additionalData.role || 'student',
+      phone: additionalData.phone || '',
+      memberType: additionalData.memberType || 'Student',
+      branch: additionalData.branch || '',
+      year: additionalData.year || '',
+      ieeeMemberId: additionalData.ieeeMemberId || '',
+      createdAt: new Date(),
+      emailVerified: firebaseUser.emailVerified || false,
+    };
+  }
 
 // Translate Firebase auth error codes to user-friendly messages
 export function getAuthErrorMessage(error: unknown): string {
@@ -85,6 +86,7 @@ export const authService = {
     displayName: string,
     additionalData: {
       phone: string;
+      memberType: string;
       branch: string;
       year: string;
       ieeeMemberId?: string;
@@ -104,10 +106,11 @@ export const authService = {
       email: firebaseUser.email,
       displayName,
       phone: additionalData.phone,
+      memberType: additionalData.memberType,
       branch: additionalData.branch,
       year: additionalData.year,
       ieeeMemberId: additionalData.ieeeMemberId || '',
-      role: 'student',
+      role: additionalData.memberType === 'Faculty' ? 'faculty' : 'student',
       emailVerified: false,
       createdAt: new Date().toISOString(),
     });

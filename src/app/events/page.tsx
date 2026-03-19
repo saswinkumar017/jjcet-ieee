@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { 
@@ -33,17 +33,15 @@ interface EventFormData {
   description: string;
   date: string;
   time: string;
+  showTime: boolean;
   venue: string;
   imageUrl: string;
   category: EventCategory;
-  // Dynamic fields
   fields: FormField[];
-  // Registration
   showRegister: boolean;
   registerLink: string;
   showDeadline: boolean;
   registrationDeadline: string;
-  // Gallery
   galleryFolderId: string;
   galleryFolderName: string;
 }
@@ -68,6 +66,7 @@ const initialFormData: EventFormData = {
   description: "",
   date: "",
   time: "",
+  showTime: true,
   venue: "",
   imageUrl: "",
   category: "other",
@@ -80,11 +79,10 @@ const initialFormData: EventFormData = {
   galleryFolderName: "",
 };
 
-export default function EventsPage() {
+function EventsContent() {
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -128,7 +126,6 @@ export default function EventsPage() {
     const date = new Date(eventDate);
     const today = new Date();
     
-    // Parse time if available (format: HH:MM)
     if (eventTime) {
       const [hours, minutes] = eventTime.split(':').map(Number);
       date.setHours(hours || 0, minutes || 0, 0, 0);
@@ -138,10 +135,6 @@ export default function EventsPage() {
     
     return date > today;
   };
-
-  const upcomingEvents = events.filter(event => isEventUpcoming(event.date, event.time));
-  const pastEvents = events.filter(event => !isEventUpcoming(event.date, event.time));
-  const displayEvents = activeTab === "upcoming" ? upcomingEvents : pastEvents;
 
   const categoryFields = getFieldsByCategory(formData.category);
 
@@ -284,6 +277,7 @@ export default function EventsPage() {
       description: event.description,
       date: new Date(event.date).toISOString().split("T")[0],
       time: event.time,
+      showTime: !!event.time,
       venue: event.venue,
       imageUrl: event.imageUrl || "",
       category: event.category || "other",
@@ -357,18 +351,6 @@ export default function EventsPage() {
       {/* Events Section */}
       <section className="py-16 md:py-20 bg-background">
         <div className="container-custom">
-          {/* Tab Switcher */}
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex bg-surface rounded-full p-1 shadow-md border border-border">
-              <button onClick={() => setActiveTab("upcoming")} className={cn("px-5 py-2 rounded-full font-medium text-sm transition-all", activeTab === "upcoming" ? "bg-primary text-white shadow" : "text-muted hover:text-foreground")}>
-                Upcoming ({upcomingEvents.length})
-              </button>
-              <button onClick={() => setActiveTab("past")} className={cn("px-5 py-2 rounded-full font-medium text-sm transition-all", activeTab === "past" ? "bg-primary text-white shadow" : "text-muted hover:text-foreground")}>
-                Past ({pastEvents.length})
-              </button>
-            </div>
-          </div>
-
           {/* Events Grid */}
           {loading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -379,51 +361,59 @@ export default function EventsPage() {
                 </div>
               ))}
             </div>
-          ) : displayEvents.length > 0 ? (
+          ) : events.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displayEvents.map((event, index) => (
-                <FadeIn key={event.id} delay={index * 0.05}>
-                  <motion.div whileHover={{ y: -5 }} className={cn("bg-surface rounded-2xl border border-border overflow-hidden hover:border-primary/30 hover:shadow-xl transition-all", activeTab === "past" && "opacity-75")}>
-                    <Link href={`/events/${event.id}`}>
-                      <div className="aspect-video relative overflow-hidden group">
-                        {event.imageUrl ? (
-                          <img src={event.imageUrl} alt={event.title} className="w-full h-full object-contain bg-muted/20" />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                            <CalendarDays className="w-10 h-10 text-primary" />
+              {events.map((event, index) => {
+                const isUpcoming = isEventUpcoming(event.date, event.time);
+                return (
+                  <FadeIn key={event.id} delay={index * 0.05}>
+                    <motion.div whileHover={{ y: -5 }} className={cn("bg-surface rounded-2xl border border-border overflow-hidden hover:border-primary/30 hover:shadow-xl transition-all", !isUpcoming && "opacity-80")}>
+                      <Link href={`/events/${event.id}`}>
+                        <div className="aspect-video relative overflow-hidden group">
+                          {event.imageUrl ? (
+                            <img src={event.imageUrl} alt={event.title} className="w-full h-full object-contain bg-muted/20" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                              <CalendarDays className="w-10 h-10 text-primary" />
+                            </div>
+                          )}
+                          <div className="absolute top-3 left-3 flex gap-2">
+                            <span className={cn("px-3 py-1.5 rounded-lg shadow text-sm font-semibold", isUpcoming ? "bg-green-500 text-white" : "bg-slate-600 text-white")}>
+                              {isUpcoming ? "Upcoming" : "Past"}
+                            </span>
+                            <span className="bg-white/95 text-primary font-semibold px-3 py-1.5 rounded-lg shadow text-sm">
+                              {new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </span>
                           </div>
-                        )}
-                        <div className="absolute top-3 left-3 bg-white/95 text-primary font-semibold px-3 py-1.5 rounded-lg shadow text-sm">
-                          {new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {user?.role === "admin" && (
+                            <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                              <button onClick={(e) => { e.preventDefault(); openEdit(event); }} className="p-2 bg-white/95 hover:bg-primary-light text-primary rounded-lg shadow"><Edit className="w-4 h-4" /></button>
+                              <button onClick={(e) => { e.preventDefault(); setDeleteItem({ id: event.id, name: event.title }); }} className="p-2 bg-white/95 hover:bg-error text-error rounded-lg shadow"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                          )}
                         </div>
-                        {user?.role === "admin" && (
-                          <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                            <button onClick={(e) => { e.preventDefault(); openEdit(event); }} className="p-2 bg-white/95 hover:bg-primary-light text-primary rounded-lg shadow"><Edit className="w-4 h-4" /></button>
-                            <button onClick={(e) => { e.preventDefault(); setDeleteItem({ id: event.id, name: event.title }); }} className="p-2 bg-white/95 hover:bg-error text-error rounded-lg shadow"><Trash2 className="w-4 h-4" /></button>
+                        <div className="p-5">
+                          <h3 className="font-semibold text-foreground mb-2 line-clamp-1">{event.title}</h3>
+                          <p className="text-sm text-muted mb-3 line-clamp-2">{event.description}</p>
+                          <div className="flex flex-wrap gap-3 text-xs text-muted mb-3">
+                            {event.time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{event.time}</span>}
+                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{event.venue}</span>
                           </div>
-                        )}
-                      </div>
-                      <div className="p-5">
-                        <h3 className="font-semibold text-foreground mb-2 line-clamp-1">{event.title}</h3>
-                        <p className="text-sm text-muted mb-3 line-clamp-2">{event.description}</p>
-                        <div className="flex flex-wrap gap-3 text-xs text-muted mb-3">
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{event.time}</span>
-                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{event.venue}</span>
+                          <div className={cn("btn-primary w-full text-center text-sm py-2.5", !isUpcoming && "btn-secondary")}>
+                            View Details <ArrowRight className="w-4 h-4 inline ml-1" />
+                          </div>
                         </div>
-                        <div className={cn("btn-primary w-full text-center text-sm py-2.5", activeTab === "past" && "btn-secondary")}>
-                          View Details <ArrowRight className="w-4 h-4 inline ml-1" />
-                        </div>
-                      </div>
-                    </Link>
-                  </motion.div>
-                </FadeIn>
-              ))}
+                      </Link>
+                    </motion.div>
+                  </FadeIn>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-16">
               <CalendarDays className="w-12 h-12 text-muted mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-foreground mb-1">{activeTab === "upcoming" ? "No Upcoming Events" : "No Past Events"}</h3>
-              <p className="text-muted text-sm">{activeTab === "upcoming" ? "Check back soon for new events" : "No events have been held yet"}</p>
+              <h3 className="text-lg font-semibold text-foreground mb-1">No Events</h3>
+              <p className="text-muted text-sm">Events will appear here once added.</p>
             </div>
           )}
         </div>
@@ -441,7 +431,17 @@ export default function EventsPage() {
             <Textarea label="Description" placeholder="Enter event description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} required />
             <div className="grid grid-cols-2 gap-4">
               <Input type="date" label="Date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} required />
-              <Input type="time" label="Time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} required />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-foreground">Time</label>
+                  <button type="button" onClick={() => setFormData({ ...formData, showTime: !formData.showTime, time: !formData.showTime ? formData.time : "" })} className={cn("w-10 h-5 rounded-full transition-colors relative shrink-0", formData.showTime ? "bg-primary" : "bg-gray-300")}>
+                    <span className={cn("absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform", formData.showTime ? "left-5" : "left-0.5")} />
+                  </button>
+                </div>
+                {formData.showTime && (
+                  <Input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} required />
+                )}
+              </div>
             </div>
             <Input label="Venue" placeholder="Enter venue" value={formData.venue} onChange={(e) => setFormData({ ...formData, venue: e.target.value })} required />
             
@@ -613,5 +613,17 @@ export default function EventsPage() {
       <SuccessToast message="Event saved successfully!" isVisible={showSuccess} onClose={() => setShowSuccess(false)} />
       <Footer />
     </>
+  );
+}
+
+export default function EventsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+      </div>
+    }>
+      <EventsContent />
+    </Suspense>
   );
 }
