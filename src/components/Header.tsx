@@ -98,14 +98,14 @@ export default function Header() {
 
   return (
     <header className="bg-gradient-to-b from-white/80 to-primary-light/30 border-b border-border/50 shadow-sm relative z-40">
-      <div className="container-custom">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-14 md:h-16 w-auto flex items-center gap-2">
+      <div className="px-6 md:px-8 lg:px-12">
+        <div className="flex items-center justify-between h-16 md:h-24">
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+            <div className="h-14 md:h-24 w-auto flex items-center gap-4">
               <img 
                 src="/jjcet-new.png" 
                 alt="JJCET" 
-                className="h-full w-auto object-contain"
+                className="h-14 md:h-24 w-auto object-contain"
               />
               <img 
                 src="/ieee.png" 
