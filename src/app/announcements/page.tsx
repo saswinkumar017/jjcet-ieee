@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { useAuth } from "@/lib/AuthContext";
 import { announcementsService } from "@/client/services";
 import { Announcement } from "@/types";
-import { Bell, Calendar, Edit, Trash2, Plus, AlertTriangle, Info, ChevronRight, X, Save } from "lucide-react";
+import { Bell, Calendar, Edit, Trash2, Plus, AlertTriangle, Info, ChevronRight, X, Save, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { SuccessToast } from "@/components/ui/SuccessToast";
@@ -20,6 +20,7 @@ export default function AnnouncementsPage() {
   const [formData, setFormData] = useState({ title: "", content: "", priority: "normal" as "high" | "normal" });
   const [saving, setSaving] = useState(false);
   const [deleteItem, setDeleteItem] = useState<{id: string; name: string} | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
@@ -34,7 +35,15 @@ export default function AnnouncementsPage() {
       }
     };
     fetchAnnouncements();
-  }, []);
+}, []);
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    if (openMenuId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openMenuId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,13 +143,13 @@ export default function AnnouncementsPage() {
                     <div className={cn(
                       "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
                       announcement.priority === "high" 
-                        ? "bg-red-100bg-red-900/30" 
-                        : "bg-primary-lightbg-primary/20"
+                        ? "bg-red-100 dark:bg-red-900/30" 
+                        : "bg-primary-light dark:bg-primary/20"
                     )}>
                       {announcement.priority === "high" ? (
-                        <AlertTriangle className="w-6 h-6 text-red-600text-red-400" />
+                        <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
                       ) : (
-                        <Info className="w-6 h-6 text-primarytext-primary-400" />
+                        <Info className="w-6 h-6 text-primary dark:text-primary-400" />
                       )}
                     </div>
                     
@@ -156,19 +165,25 @@ export default function AnnouncementsPage() {
                         </div>
                         
                         {user?.role === "admin" && (
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <button
-                              onClick={() => openEdit(announcement)}
-                              className="p-2 text-muted hover:text-primary hover:bg-primary-light rounded-lg transition-all"
+                          <div className="relative flex-shrink-0">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === announcement.id ? null : announcement.id); }}
+                              className="p-2 hover:bg-slate-100 text-slate-500 rounded-lg transition-all"
                             >
-                              <Edit className="w-4 h-4" />
+                              <MoreVertical className="w-5 h-5" />
                             </button>
-                            <button
-                              onClick={() => handleDeleteClick(announcement.id, announcement.title)}
-                              className="p-2 text-muted hover:text-error hover:bg-error/10 rounded-lg transition-all"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {openMenuId === announcement.id && (
+                              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 min-w-[120px] z-30">
+                                <button onClick={() => { openEdit(announcement); setOpenMenuId(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                  <Edit className="w-4 h-4" />
+                                  Edit
+                                </button>
+                                <button onClick={() => { handleDeleteClick(announcement.id, announcement.title); setOpenMenuId(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                  <Trash2 className="w-4 h-4" />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -179,7 +194,7 @@ export default function AnnouncementsPage() {
                           {new Date(announcement.createdAt).toLocaleDateString()}
                         </span>
                         {announcement.priority === "high" && (
-                          <span className="px-2 py-0.5 bg-red-100bg-red-900/30 text-red-600text-red-400 text-xs rounded-full">
+                          <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-full">
                             Important
                           </span>
                         )}

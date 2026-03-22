@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { 
   CalendarDays, Plus, Edit, Trash2, ArrowRight, Clock, MapPin, 
-  X, Users, Trophy, Mic, GraduationCap, Folder
+  X, Users, Trophy, Mic, GraduationCap, Folder, MoreVertical
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -91,6 +91,7 @@ function EventsContent() {
   const [formData, setFormData] = useState<EventFormData>(initialFormData);
   const [deleteItem, setDeleteItem] = useState<{id: string; name: string} | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   
   const [showDriveModal, setShowDriveModal] = useState(false);
   const [driveImages, setDriveImages] = useState<any[]>([]);
@@ -121,6 +122,14 @@ function EventsContent() {
     fetchEvents();
     fetchGalleryFolders();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    if (openMenuId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openMenuId]);
 
   const isEventUpcoming = (eventDate: Date | string, eventTime: string) => {
     const date = new Date(eventDate);
@@ -386,9 +395,27 @@ function EventsContent() {
                             </span>
                           </div>
                           {user?.role === "admin" && (
-                            <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                              <button onClick={(e) => { e.preventDefault(); openEdit(event); }} className="p-2 bg-white/95 hover:bg-primary-light text-primary rounded-lg shadow"><Edit className="w-4 h-4" /></button>
-                              <button onClick={(e) => { e.preventDefault(); setDeleteItem({ id: event.id, name: event.title }); }} className="p-2 bg-white/95 hover:bg-error text-error rounded-lg shadow"><Trash2 className="w-4 h-4" /></button>
+                            <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all">
+                              <div className="relative">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === event.id ? null : event.id); }}
+                                  className="p-2 bg-white/95 hover:bg-slate-100 text-slate-600 rounded-lg shadow-lg transition-all"
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                                {openMenuId === event.id && (
+                                  <div className="absolute right-0 bottom-full mb-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 min-w-[120px] z-30">
+                                    <button onClick={() => { openEdit(event); setOpenMenuId(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                      <Edit className="w-4 h-4" />
+                                      Edit
+                                    </button>
+                                    <button onClick={() => { setDeleteItem({ id: event.id, name: event.title }); setOpenMenuId(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                      <Trash2 className="w-4 h-4" />
+                                      Delete
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>

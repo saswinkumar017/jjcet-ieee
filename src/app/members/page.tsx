@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Users, Plus, Edit, Trash2, Mail, Linkedin, Instagram, FolderOpen, Image } from "lucide-react";
+import { Users, Plus, Edit, Trash2, Mail, Linkedin, Instagram, FolderOpen, Image, MoreVertical } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { membersService } from "@/client/services";
@@ -22,9 +22,11 @@ interface MemberCardProps {
   onEdit: (member: TeamMember) => void;
   onDelete: (id: string, name: string) => void;
   isLarge?: boolean;
+  openMenuId: string | null;
+  setOpenMenuId: (id: string | null) => void;
 }
 
-function MemberCard({ member, index, isAdmin, onEdit, onDelete, isLarge }: MemberCardProps) {
+function MemberCard({ member, index, isAdmin, onEdit, onDelete, isLarge, openMenuId, setOpenMenuId }: MemberCardProps) {
   const [showDescription, setShowDescription] = useState(false);
   const isFaculty = member.memberType === "faculty";
   const hasDescription = isFaculty && member.description;
@@ -45,13 +47,27 @@ function MemberCard({ member, index, isAdmin, onEdit, onDelete, isLarge }: Membe
             )}
           </div>
           {isAdmin && (
-            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
-              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(member); }} className="p-2 bg-white shadow-lg rounded-lg hover:bg-primary-light">
-                <Edit className="w-4 h-4" />
-              </button>
-              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(member.id, member.name); }} className="p-2 bg-error text-white shadow-lg rounded-lg">
-                <Trash2 className="w-4 h-4" />
-              </button>
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all z-20">
+              <div className="relative">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === member.id ? null : member.id); }}
+                  className="p-2 bg-white/95 hover:bg-slate-100 text-slate-600 rounded-lg shadow-lg transition-all"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+                {openMenuId === member.id && (
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 min-w-[120px] z-30">
+                    <button onClick={(e) => { e.stopPropagation(); onEdit(member); setOpenMenuId(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                      <Edit className="w-4 h-4" />
+                      Edit
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(member.id, member.name); setOpenMenuId(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           {hasDescription && (
@@ -90,6 +106,7 @@ export default function MembersPage() {
   });
   const [deleteItem, setDeleteItem] = useState<{id: string; name: string} | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   
   // Drive image selection
   const [showDriveModal, setShowDriveModal] = useState(false);
@@ -155,6 +172,14 @@ export default function MembersPage() {
     };
     fetchMembers();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    if (openMenuId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openMenuId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -278,6 +303,8 @@ export default function MembersPage() {
                         onEdit={openEdit}
                         onDelete={handleDeleteClick}
                         isLarge
+                        openMenuId={openMenuId}
+                        setOpenMenuId={setOpenMenuId}
                       />
                     ))}
                   </div>
@@ -298,6 +325,8 @@ export default function MembersPage() {
                         isAdmin={user?.role === "admin"}
                         onEdit={openEdit}
                         onDelete={handleDeleteClick}
+                        openMenuId={openMenuId}
+                        setOpenMenuId={setOpenMenuId}
                       />
                     ))}
                   </div>
