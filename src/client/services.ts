@@ -14,7 +14,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 
-import { Event, News, TeamMember, GalleryImage, Announcement, Notification, User } from '@/types';
+import { Event, News, TeamMember, GalleryImage, Announcement, Notification, User, Chapter, ChapterMember } from '@/types';
 
 // Simple mapping functions
 function mapEventFromFirestore(data: any): Event {
@@ -98,6 +98,29 @@ function mapGalleryFromFirestore(data: any): GalleryImage {
     caption: data.caption || '',
     eventId: data.eventId,
     uploadedAt: data.uploadedAt ? new Date(data.uploadedAt) : new Date(),
+  };
+}
+
+function mapChapterFromFirestore(data: any): Chapter {
+  return {
+    id: data.id || '',
+    name: data.name || '',
+    description: data.description || '',
+    logoUrl: data.logoUrl || data.logo_url || '',
+    createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+  };
+}
+
+function mapChapterMemberFromFirestore(data: any): ChapterMember {
+  return {
+    id: data.id || '',
+    chapterId: data.chapterId || '',
+    name: data.name || '',
+    role: data.role || '',
+    photoUrl: data.photoUrl || data.photo_url || '',
+    email: data.email || '',
+    linkedin: data.linkedin || '',
+    order: data.order || 0,
   };
 }
 
@@ -485,7 +508,7 @@ export interface DriveFile {
 
 export const driveService = {
   // Upload file to Google Drive
-  async upload(file: File, type: 'events' | 'members' | 'gallery' = 'events', customName?: string): Promise<DriveFile> {
+  async upload(file: File, type: 'events' | 'members' | 'gallery' | 'chapters' | 'chapter_members' = 'events', customName?: string): Promise<DriveFile> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);
@@ -530,7 +553,7 @@ export const driveService = {
   },
 
   // Get images from a specific type folder
-  async getImages(type: 'events' | 'members' | 'gallery' | 'news' | 'announcements' = 'events'): Promise<DriveFile[]> {
+  async getImages(type: 'events' | 'members' | 'gallery' | 'news' | 'announcements' | 'chapters' | 'chapter_members' = 'events'): Promise<DriveFile[]> {
     const response = await fetch(`${DRIVE_API_BASE}?action=images&type=${type}`);
     if (!response.ok) {
       throw new Error('Failed to fetch images');
@@ -575,5 +598,109 @@ export const usersService = {
 
   async delete(uid: string): Promise<void> {
     await deleteDoc(doc(db, 'users', uid));
+  },
+};
+
+export const chaptersService = {
+  async getAll(): Promise<Chapter[]> {
+    const q = query(collection(db, 'chapters'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => mapChapterFromFirestore({ id: d.id, ...d.data() }));
+  },
+
+  async getById(id: string): Promise<Chapter | null> {
+    const snap = await getDoc(doc(db, 'chapters', id));
+    if (!snap.exists()) return null;
+    return mapChapterFromFirestore({ id: snap.id, ...snap.data() });
+  },
+
+  async create(chapterData: Omit<Chapter, 'id' | 'createdAt'>): Promise<string> {
+    const cleanData = Object.fromEntries(
+      Object.entries(chapterData).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    const docRef = await addDoc(collection(db, 'chapters'), { ...cleanData, createdAt: new Date().toISOString() });
+    return docRef.id;
+  },
+
+  async createWithFile(chapterData: Omit<Chapter, 'id' | 'createdAt'>, file: File): Promise<string> {
+    try {
+      const driveFile = await driveService.upload(file, 'chapters', chapterData.name);
+      return this.create({ ...chapterData, logoUrl: driveFile.url });
+    } catch (error) {
+      console.error('Drive upload error:', error);
+      throw error;
+    }
+  },
+
+  async update(id: string, data: Partial<Chapter>): Promise<void> {
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    await updateDoc(doc(db, 'chapters', id), cleanData as any);
+  },
+
+  async updateWithFile(id: string, data: Partial<Chapter>, file?: File): Promise<void> {
+    if (file) {
+      const driveFile = await driveService.upload(file, 'chapters', data.name || 'chapter');
+      await this.update(id, { ...data, logoUrl: driveFile.url });
+    } else {
+      await this.update(id, data);
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'chapters', id));
+  },
+};
+
+export const chapterMembersService = {
+  async getByChapterId(chapterId: string): Promise<ChapterMember[]> {
+    const q = query(collection(db, 'chapter_members'), where('chapterId', '==', chapterId), orderBy('order', 'asc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => mapChapterMemberFromFirestore({ id: d.id, ...d.data() }));
+  },
+
+  async getById(id: string): Promise<ChapterMember | null> {
+    const snap = await getDoc(doc(db, 'chapter_members', id));
+    if (!snap.exists()) return null;
+    return mapChapterMemberFromFirestore({ id: snap.id, ...snap.data() });
+  },
+
+  async create(memberData: Omit<ChapterMember, 'id'>): Promise<string> {
+    const cleanData = Object.fromEntries(
+      Object.entries(memberData).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    const docRef = await addDoc(collection(db, 'chapter_members'), cleanData);
+    return docRef.id;
+  },
+
+  async createWithFile(memberData: Omit<ChapterMember, 'id'>, file: File): Promise<string> {
+    try {
+      const driveFile = await driveService.upload(file, 'chapter_members', memberData.name);
+      return this.create({ ...memberData, photoUrl: driveFile.url });
+    } catch (error) {
+      console.error('Drive upload error:', error);
+      throw error;
+    }
+  },
+
+  async update(id: string, data: Partial<ChapterMember>): Promise<void> {
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    await updateDoc(doc(db, 'chapter_members', id), cleanData as any);
+  },
+
+  async updateWithFile(id: string, data: Partial<ChapterMember>, file?: File): Promise<void> {
+    if (file) {
+      const driveFile = await driveService.upload(file, 'chapter_members', data.name || 'member');
+      await this.update(id, { ...data, photoUrl: driveFile.url });
+    } else {
+      await this.update(id, data);
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'chapter_members', id));
   },
 };

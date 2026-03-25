@@ -112,3 +112,22 @@ export interface DriveFolder {
   name: string;
   thumbnailLink?: string;
 }
+
+export interface Chapter {
+  id: string;
+  name: string;
+  description: string;
+  logoUrl?: string;
+  createdAt: Date;
+}
+
+export interface ChapterMember {
+  id: string;
+  chapterId: string;
+  name: string;
+  role: string;
+  photoUrl: string;
+  email: string;
+  linkedin?: string;
+  order: number;
+}

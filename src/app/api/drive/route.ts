@@ -6,11 +6,14 @@ import { Readable } from 'stream';
 const MAIN_FOLDER_ID = '1k6dU1uEKV6SaLW_b5c1_gmZSwbDklwr1'; // Gallery - contains subfolders
 const EVENTS_FOLDER_ID = '1oVCkFLpXzi3havqZ4Iib10NhaKhEnYqQ'; // Events images
 const MEMBERS_FOLDER_ID = '1VIEn4x2JPTRoMqxj5XEnjcfL8C815CUf'; // Members images
+const CHAPTERS_FOLDER_ID = '1DlMDoDrKt-xgu0XBX_aSmOn4iP2AcGQa'; // Chapters images
 
 const SUBFOLDERS: Record<string, string> = {
   events: 'Events',
   members: 'Members',
   gallery: 'Gallery',
+  chapters: 'Chapters',
+  chapter_members: 'Members',
 };
 
 function getServiceAccount() {
@@ -126,6 +129,10 @@ export async function GET(request: Request) {
         if (type === 'events') {
           targetFolderId = EVENTS_FOLDER_ID;
         } else if (type === 'members') {
+          targetFolderId = MEMBERS_FOLDER_ID;
+        } else if (type === 'chapters') {
+          targetFolderId = CHAPTERS_FOLDER_ID;
+        } else if (type === 'chapter_members') {
           targetFolderId = MEMBERS_FOLDER_ID;
         } else {
           targetFolderId = MAIN_FOLDER_ID;
