@@ -103,7 +103,7 @@ export default function Header() {
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             <div className="h-14 md:h-24 w-auto flex items-center gap-4">
               <img 
-                src="/jjcet-new.png" 
+                src="/image_46.png" 
                 alt="JJCET" 
                 className="h-14 md:h-24 w-auto object-contain"
               />
