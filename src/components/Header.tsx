@@ -13,6 +13,7 @@ const navItems = [
   { name: "Home", href: "/" },
   { name: "About Us", href: "/about" },
   { name: "Events", href: "/events" },
+  { name: "Chapters", href: "/chapters" },
   { name: "Members", href: "/members" },
   { name: "Gallery", href: "/gallery" },
   { name: "Contact", href: "/contact" },
@@ -103,7 +104,7 @@ export default function Header() {
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             <div className="h-14 md:h-24 w-auto flex items-center gap-4">
               <img 
-                src="/jjcet-new.png" 
+                src="/image_47.png" 
                 alt="JJCET" 
                 className="h-14 md:h-24 w-auto object-contain"
               />
