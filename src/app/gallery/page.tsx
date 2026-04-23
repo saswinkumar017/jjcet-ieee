@@ -7,15 +7,15 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getCollections, getGalleryImages, getDriveThumbnailUrl, DriveImage, DriveFolder } from "@/lib/drive";
 import { useAuth } from "@/lib/AuthContext";
-import { eventsService } from "@/client/services";
-import { Event } from "@/types";
-import { ZoomIn, Folder, ArrowLeft, Images, Image as ImageIcon, ChevronLeft, ChevronRight, Calendar, Camera, Sparkles, Plus, Edit, Trash2, MoreVertical, ArrowUpDown } from "lucide-react";
+import { galleryService } from "@/client/services";
+import { Gallery } from "@/types";
+import { Folder, ArrowLeft, Images, Image as ImageIcon, ChevronLeft, ChevronRight, Calendar, Camera, Sparkles, Plus, Edit, Trash2, MoreVertical, ArrowUpDown, Loader, ZoomIn } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
 function GalleryCard({ gallery, index, isAdmin, onView, onEdit, onDelete }: {
-  gallery: Event;
+  gallery: Gallery;
   index: number;
   isAdmin: boolean;
   onView: () => void;
@@ -29,8 +29,8 @@ function GalleryCard({ gallery, index, isAdmin, onView, onEdit, onDelete }: {
   
   useEffect(() => {
     let isMounted = true;
-    if (gallery.galleryFolderId) {
-      getGalleryImages(gallery.galleryFolderId)
+    if (gallery.folderId) {
+      getGalleryImages(gallery.folderId)
         .then(imgs => {
           if (isMounted) {
             setPreviewImages(imgs.slice(0, 4));
@@ -45,7 +45,7 @@ function GalleryCard({ gallery, index, isAdmin, onView, onEdit, onDelete }: {
       setLoading(false);
     }
     return () => { isMounted = false; };
-  }, [gallery.galleryFolderId]);
+  }, [gallery.folderId]);
   
   useEffect(() => {
     const handleClickOutside = () => setOpenMenuId(null);
@@ -242,7 +242,7 @@ function GalleryContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const folderId = searchParams.get('folder');
-  const [galleries, setGalleries] = useState<Event[]>([]);
+  const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [allFolders, setAllFolders] = useState<DriveFolder[]>([]);
   const [images, setImages] = useState<DriveImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -256,7 +256,7 @@ function GalleryContent() {
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingGallery, setEditingGallery] = useState<Event | null>(null);
+  const [editingGallery, setEditingGallery] = useState<Gallery | null>(null);
   const [addTitle, setAddTitle] = useState("");
   const [addDate, setAddDate] = useState("");
   const [addFolderId, setAddFolderId] = useState("");
@@ -264,13 +264,12 @@ function GalleryContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
-  // Fetch gallery events (not auto-fetch Drive folders)
+  // Fetch galleries from separate collection
   useEffect(() => {
     const loadGalleries = async () => {
       try {
-        const events = await eventsService.getAll();
-        const galleryEvents = events.filter(e => e.galleryFolderId);
-        setGalleries(galleryEvents);
+        const data = await galleryService.getAll();
+        setGalleries(data);
         setLoading(false);
       } catch (err) {
         console.error("Failed to fetch galleries:", err);
@@ -283,16 +282,15 @@ function GalleryContent() {
   // Fetch all drive folders when modal opens
   const fetchFoldersForModal = async () => {
     // Get latest galleries to filter properly
-    const latestEvents = await eventsService.getAll();
-    const latestGalleries = latestEvents.filter(e => e.galleryFolderId);
+    const latestGalleries = await galleryService.getAll();
     setGalleries(latestGalleries);
     
     const driveFolders = await getCollections();
     setAllFolders(driveFolders);
     
-    const linkedFolderIds = new Set(latestGalleries.map(g => g.galleryFolderId).filter(Boolean));
-    if (editingGallery?.galleryFolderId) {
-      linkedFolderIds.delete(editingGallery.galleryFolderId);
+    const linkedFolderIds = new Set(latestGalleries.map(g => g.folderId).filter(Boolean));
+    if (editingGallery?.folderId) {
+      linkedFolderIds.delete(editingGallery.folderId);
     }
     const available = driveFolders.filter(f => !linkedFolderIds.has(f.id));
     setAvailableFolders(available);
@@ -306,12 +304,12 @@ function GalleryContent() {
     setShowAddModal(true);
   };
 
-  const openEditModal = async (gallery: Event) => {
+  const openEditModal = async (gallery: Gallery) => {
     setEditingGallery(gallery);
     setAddTitle(gallery.title);
     const eventDate = new Date(gallery.date);
     setAddDate(eventDate.toISOString().split('T')[0]);
-    setAddFolderId(gallery.galleryFolderId || "");
+    setAddFolderId(gallery.folderId || "");
     await fetchFoldersForModal();
     setShowEditModal(true);
   };
@@ -323,25 +321,16 @@ function GalleryContent() {
     setIsSubmitting(true);
     try {
       const selectedFolder = allFolders.find(f => f.id === addFolderId);
-      await eventsService.create({
+      await galleryService.create({
         title: addTitle,
-        description: `Gallery: ${selectedFolder?.name || 'Photos'}`,
-        date: new Date(addDate),
-        time: "",
-        venue: "Online Gallery",
-        imageUrl: "",
-        category: "gallery",
-        fields: [],
-        showRegister: false,
-        registerLink: "",
-        showDeadline: false,
-        registrationDeadline: undefined,
-        galleryFolderId: addFolderId,
-        galleryFolderName: selectedFolder?.name || "",
+        date: addDate,
+        folderId: addFolderId,
+        folderName: selectedFolder?.name || "",
+        imageUrls: [],
       });
       
-      const events = await eventsService.getAll();
-      setGalleries(events.filter(e => e.galleryFolderId));
+      const data = await galleryService.getAll();
+      setGalleries(data);
       
       setShowAddModal(false);
       setAddTitle("");
@@ -361,15 +350,15 @@ function GalleryContent() {
     setIsSubmitting(true);
     try {
       const selectedFolder = allFolders.find(f => f.id === addFolderId);
-      await eventsService.update(editingGallery.id, {
+      await galleryService.update(editingGallery.id, {
         title: addTitle,
-        date: new Date(addDate),
-        galleryFolderId: addFolderId,
-        galleryFolderName: selectedFolder?.name || "",
+        date: addDate,
+        folderId: addFolderId,
+        folderName: selectedFolder?.name || "",
       });
       
-      const events = await eventsService.getAll();
-      setGalleries(events.filter(e => e.galleryFolderId));
+      const data = await galleryService.getAll();
+      setGalleries(data);
       
       setShowEditModal(false);
       setEditingGallery(null);
@@ -383,10 +372,10 @@ function GalleryContent() {
     }
   };
 
-  const handleDeleteGallery = async (gallery: Event) => {
+  const handleDeleteGallery = async (gallery: Gallery) => {
     if (!confirm(`Delete "${gallery.title}"?`)) return;
     try {
-      await eventsService.delete(gallery.id);
+      await galleryService.delete(gallery.id);
       setGalleries(galleries.filter(g => g.id !== gallery.id));
     } catch (err) {
       console.error("Failed to delete gallery:", err);
@@ -425,9 +414,6 @@ function GalleryContent() {
     setImages([]);
     setError(null);
     fetchedRef.current = null;
-    // Refresh galleries list
-    const events = await eventsService.getAll();
-    setGalleries(events.filter(e => e.galleryFolderId));
   };
 
   const handlePrevImage = (e: React.MouseEvent) => {
@@ -596,8 +582,8 @@ function GalleryContent() {
                       index={index}
                       isAdmin={user?.role === "admin"}
                       onView={() => {
-                        if (gallery.galleryFolderId) {
-                          setSelectedCollection({ id: gallery.galleryFolderId, name: gallery.galleryFolderName || '' });
+                        if (gallery.folderId) {
+                          setSelectedCollection({ id: gallery.folderId, name: gallery.folderName || '' });
                           setImages([]);
                         }
                       }}

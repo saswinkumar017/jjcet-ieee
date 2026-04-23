@@ -14,7 +14,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 
-import { Event, News, TeamMember, GalleryImage, Announcement, Notification, User, Chapter, ChapterMember } from '@/types';
+import { Event, News, TeamMember, Gallery, Announcement, Notification, User, Chapter, ChapterMember } from '@/types';
 
 // Simple mapping functions
 function mapEventFromFirestore(data: any): Event {
@@ -88,16 +88,6 @@ function mapNotificationFromFirestore(data: any): Notification {
     createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
     readBy: data.readBy || [],
     deletedBy: data.deletedBy || [],
-  };
-}
-
-function mapGalleryFromFirestore(data: any): GalleryImage {
-  return {
-    id: data.id || '',
-    imageUrl: data.imageUrl || data.image_url || '',
-    caption: data.caption || '',
-    eventId: data.eventId,
-    uploadedAt: data.uploadedAt ? new Date(data.uploadedAt) : new Date(),
   };
 }
 
@@ -374,27 +364,63 @@ export const announcementsService = {
   },
 };
 
+function mapGalleryFromFirestore(data: any): Gallery {
+  return {
+    id: data.id,
+    title: data.title || '',
+    date: data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    folderId: data.folderId || '',
+    folderName: data.folderName || '',
+    imageUrls: data.imageUrls || [],
+    createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+    updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
+  };
+}
+
+function mapGalleryToFirestore(gallery: Partial<Gallery>): any {
+  return {
+    ...gallery,
+    date: gallery.date?.toString(),
+    createdAt: gallery.createdAt?.toISOString(),
+    updatedAt: gallery.updatedAt?.toISOString(),
+  };
+}
+
 export const galleryService = {
-  async getAll(): Promise<GalleryImage[]> {
-    const q = query(collection(db, 'gallery'), orderBy('uploadedAt', 'desc'));
+  async getAll(): Promise<Gallery[]> {
+    const q = query(collection(db, 'galleries'), orderBy('date', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => mapGalleryFromFirestore({ id: d.id, ...d.data() }));
   },
 
-  async add(imageData: Omit<GalleryImage, 'id' | 'uploadedAt'>): Promise<string> {
-    const docRef = await addDoc(collection(db, 'gallery'), { ...imageData, uploadedAt: new Date().toISOString() });
-    await createNotificationGlobally({ title: 'New Gallery Update', message: imageData.caption || 'New photos', type: 'gallery', referenceUrl: '/gallery' });
+  async getById(id: string): Promise<Gallery | null> {
+    const docRef = await getDoc(doc(db, 'galleries', id));
+    if (!docRef.exists()) return null;
+    return mapGalleryFromFirestore({ id: docRef.id, ...docRef.data() });
+  },
+
+  async create(galleryData: Omit<Gallery, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    const now = new Date().toISOString();
+    const docRef = await addDoc(collection(db, 'galleries'), {
+      ...galleryData,
+      date: galleryData.date.toString(),
+      createdAt: now,
+      updatedAt: now,
+    });
+    await createNotificationGlobally({ title: 'New Gallery', message: galleryData.title, type: 'gallery', referenceUrl: '/gallery' });
     return docRef.id;
   },
 
-  async upload(file: File, caption: string): Promise<string> {
-    // Upload to Google Drive
-    const driveFile = await driveService.upload(file, 'gallery', caption);
-    return this.add({ imageUrl: driveFile.url, caption });
+  async update(id: string, galleryData: Partial<Gallery>): Promise<void> {
+    await updateDoc(doc(db, 'galleries', id), {
+      ...galleryData,
+      date: galleryData.date?.toString(),
+      updatedAt: new Date().toISOString(),
+    });
   },
 
-  async delete(id: string): Promise<void> {
-    await deleteDoc(doc(db, 'gallery', id));
+async delete(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'galleries', id));
   },
 };
 

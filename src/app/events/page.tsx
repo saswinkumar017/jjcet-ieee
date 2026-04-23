@@ -102,7 +102,9 @@ function EventsContent() {
     const fetchEvents = async () => {
       try {
         const data = await eventsService.getAll();
-        setEvents(data);
+        // Filter out gallery category events
+        const filtered = data.filter(e => e.category !== "gallery");
+        setEvents(filtered);
       } catch (error) {
         console.error("Failed to fetch events:", error);
       } finally {
@@ -211,21 +213,24 @@ function EventsContent() {
           value: f.value
         }));
       
-      const eventData: any = {
-        title: formData.title,
-        description: formData.description,
-        date: formData.date,
-        time: formData.time,
-        venue: formData.venue,
-        imageUrl: formData.imageUrl,
-        category: formData.category,
+      // Remove gallery fields - galleries are now separate
+      const { galleryFolderId, galleryFolderName, ...cleanFormData } = formData;
+      
+      const eventData = {
+        title: cleanFormData.title,
+        description: cleanFormData.description,
+        date: cleanFormData.date ? new Date(cleanFormData.date) : new Date(),
+        time: cleanFormData.time,
+        venue: cleanFormData.venue,
+        imageUrl: cleanFormData.imageUrl,
+        category: cleanFormData.category,
         fields: enabledFields,
-        showRegister: formData.showRegister,
-        registerLink: formData.registerLink,
-        showDeadline: formData.showDeadline,
-        registrationDeadline: formData.registrationDeadline || null,
-        galleryFolderId: formData.galleryFolderId || null,
-        galleryFolderName: formData.galleryFolderName || null,
+        showRegister: cleanFormData.showRegister,
+        registerLink: cleanFormData.registerLink,
+        showDeadline: cleanFormData.showDeadline,
+        registrationDeadline: cleanFormData.registrationDeadline 
+          ? new Date(cleanFormData.registrationDeadline) 
+          : undefined,
       };
       
       if (editingEvent) {
@@ -235,7 +240,8 @@ function EventsContent() {
       }
       
       const updated = await eventsService.getAll();
-      setEvents(updated);
+      const filtered = updated.filter(e => e.category !== "gallery");
+      setEvents(filtered);
       closeModal();
     } catch (error: any) {
       console.error("Failed to save event:", error);
@@ -250,7 +256,8 @@ function EventsContent() {
     try {
       await eventsService.delete(deleteItem.id);
       const updated = await eventsService.getAll();
-      setEvents(updated);
+      const filtered = updated.filter(e => e.category !== "gallery");
+      setEvents(filtered);
       setShowSuccess(true);
     } catch (error) {
       console.error("Failed to delete event:", error);

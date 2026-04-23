@@ -77,6 +77,17 @@ export interface GalleryImage {
   uploadedAt: Date;
 }
 
+export interface Gallery {
+  id: string;
+  title: string;
+  date: string;
+  folderId: string;
+  folderName: string;
+  imageUrls: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Announcement {
   id: string;
   title: string;
