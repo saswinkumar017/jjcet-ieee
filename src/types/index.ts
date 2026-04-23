@@ -14,7 +14,7 @@ export interface User {
   emailVerified: boolean;
 }
 
-export type EventCategory = "competition" | "guest_lecture" | "workshop" | "other";
+export type EventCategory = "competition" | "guest_lecture" | "workshop" | "gallery" | "other";
 
 export interface EventField {
   key: string;

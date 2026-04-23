@@ -265,9 +265,9 @@ export default function AboutPage() {
                           )}
                         </div>
                         {/* Member Type Badge */}
-                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-accent text-foreground text-xs font-bold rounded-full shadow-lg">
+                        {/* <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-accent text-foreground text-xs font-bold rounded-full shadow-lg">
                           {member.memberType || 'Student'}
-                        </div>
+                        </div> */}
                       </div>
                     </div>
 

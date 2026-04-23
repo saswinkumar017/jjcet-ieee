@@ -374,11 +374,11 @@ function EventsContent() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {events.map((event, index) => {
                 const isUpcoming = isEventUpcoming(event.date, event.time);
-                return (
+return (
                   <FadeIn key={event.id} delay={index * 0.05}>
                     <motion.div whileHover={{ y: -5 }} className={cn("bg-surface rounded-2xl border border-border overflow-hidden hover:border-primary/30 hover:shadow-xl transition-all", !isUpcoming && "opacity-80")}>
-                      <Link href={`/events/${event.id}`}>
-                        <div className="aspect-video relative overflow-hidden group">
+                      <div className="aspect-video relative overflow-hidden group">
+                        <Link href={`/events/${event.id}`}>
                           {event.imageUrl ? (
                             <img src={event.imageUrl} alt={event.title} className="w-full h-full object-contain bg-muted/20" />
                           ) : (
@@ -394,31 +394,33 @@ function EventsContent() {
                               {new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                             </span>
                           </div>
-                          {user?.role === "admin" && (
-                            <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all">
-                              <div className="relative">
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === event.id ? null : event.id); }}
-                                  className="p-2 bg-white/95 hover:bg-slate-100 text-slate-600 rounded-lg shadow-lg transition-all"
-                                >
-                                  <MoreVertical className="w-4 h-4" />
-                                </button>
-                                {openMenuId === event.id && (
-                                  <div className="absolute right-0 bottom-full mb-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 min-w-[120px] z-30">
-                                    <button onClick={() => { openEdit(event); setOpenMenuId(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
-                                      <Edit className="w-4 h-4" />
-                                      Edit
-                                    </button>
-                                    <button onClick={() => { setDeleteItem({ id: event.id, name: event.title }); setOpenMenuId(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                                      <Trash2 className="w-4 h-4" />
-                                      Delete
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
+                        </Link>
+                        {user?.role === "admin" && (
+                          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all">
+                            <div className="relative">
+                              <button 
+                                onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); setOpenMenuId(openMenuId === event.id ? null : event.id); }}
+                                className="p-2 bg-white/95 hover:bg-slate-100 text-slate-600 rounded-lg shadow-lg transition-all"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                              {openMenuId === event.id && (
+                                <div className="absolute right-0 bottom-full mb-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 min-w-[120px] z-30">
+                                  <button onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); openEdit(event); setOpenMenuId(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                    <Edit className="w-4 h-4" />
+                                    Edit
+                                  </button>
+                                  <button onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); setDeleteItem({ id: event.id, name: event.title }); setOpenMenuId(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
+                      </div>
+                      <Link href={`/events/${event.id}`}>
                         <div className="p-5">
                           <h3 className="font-semibold text-foreground mb-2 line-clamp-1">{event.title}</h3>
                           <p className="text-sm text-muted mb-3 line-clamp-2">{event.description}</p>
