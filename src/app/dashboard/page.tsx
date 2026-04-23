@@ -47,7 +47,7 @@ export default function DashboardPage() {
           const upcoming = events.filter(event => {
             const eventDate = new Date(event.date);
             const today = new Date();
-            return eventDate >= today && event.category !== "gallery" && !event.galleryFolderId;
+            return eventDate >= today && event.category !== "gallery";
           }).slice(0, 3);
           setUpcomingEvents(upcoming);
         } catch (error) {

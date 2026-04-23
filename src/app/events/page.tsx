@@ -102,7 +102,7 @@ function EventsContent() {
     const fetchEvents = async () => {
       try {
         const data = await eventsService.getAll();
-        // Filter out gallery category events
+        // Only filter out old gallery category events (category: "gallery" stored in events)
         const filtered = data.filter(e => e.category !== "gallery");
         setEvents(filtered);
       } catch (error) {
@@ -213,24 +213,23 @@ function EventsContent() {
           value: f.value
         }));
       
-      // Remove gallery fields - galleries are now separate
-      const { galleryFolderId, galleryFolderName, ...cleanFormData } = formData;
-      
       const eventData = {
-        title: cleanFormData.title,
-        description: cleanFormData.description,
-        date: cleanFormData.date ? new Date(cleanFormData.date) : new Date(),
-        time: cleanFormData.time,
-        venue: cleanFormData.venue,
-        imageUrl: cleanFormData.imageUrl,
-        category: cleanFormData.category,
+        title: formData.title,
+        description: formData.description,
+        date: formData.date ? new Date(formData.date) : new Date(),
+        time: formData.time,
+        venue: formData.venue,
+        imageUrl: formData.imageUrl,
+        category: formData.category,
         fields: enabledFields,
-        showRegister: cleanFormData.showRegister,
-        registerLink: cleanFormData.registerLink,
-        showDeadline: cleanFormData.showDeadline,
-        registrationDeadline: cleanFormData.registrationDeadline 
-          ? new Date(cleanFormData.registrationDeadline) 
+        showRegister: formData.showRegister,
+        registerLink: formData.registerLink,
+        showDeadline: formData.showDeadline,
+        registrationDeadline: formData.registrationDeadline 
+          ? new Date(formData.registrationDeadline) 
           : undefined,
+        galleryFolderId: formData.galleryFolderId || undefined,
+        galleryFolderName: formData.galleryFolderName || undefined,
       };
       
       if (editingEvent) {

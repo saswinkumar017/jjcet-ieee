@@ -271,13 +271,22 @@ function GalleryContent() {
         const data = await galleryService.getAll();
         setGalleries(data);
         setLoading(false);
+        
+        // If folderId param exists, auto-select that gallery
+        if (folderId) {
+          const matchedGallery = data.find(g => g.folderId === folderId);
+          if (matchedGallery) {
+            // Create a DriveFolder-like object for the selected collection
+            setSelectedCollection({ id: matchedGallery.folderId, name: matchedGallery.folderName || matchedGallery.title });
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch galleries:", err);
         setLoading(false);
       }
     };
     loadGalleries();
-  }, []);
+  }, [folderId]);
 
   // Fetch all drive folders when modal opens
   const fetchFoldersForModal = async () => {

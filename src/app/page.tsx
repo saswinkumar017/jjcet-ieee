@@ -100,7 +100,7 @@ export default function HomePage() {
     const fetchData = async () => {
       try {
         const eventsData = await eventsService.getAll();
-        const filtered = eventsData.filter(e => e.category !== "gallery" && !e.galleryFolderId);
+        const filtered = eventsData.filter(e => e.category !== "gallery");
         setEvents(filtered.slice(0, 3));
 
 
