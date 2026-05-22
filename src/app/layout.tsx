@@ -34,6 +34,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
 import { ThemeProvider } from "@/lib/theme";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "JJCET IEEE Student Branch",
@@ -75,6 +76,7 @@ export default function RootLayout({
             {children}
           </AuthProvider>
         </ThemeProvider>
+        <Analytics />
 
       </body>
     </html>
